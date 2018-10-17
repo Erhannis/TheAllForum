@@ -5,10 +5,13 @@
  */
 package com.erhannis.theallforum.data.events.post;
 
+import javax.persistence.Entity;
+
 /**
  *
  * @author erhannis
  */
+@Entity
 public class PostTextUpdated extends PostEvent {
   public String text; //TODO byte[]?
 }

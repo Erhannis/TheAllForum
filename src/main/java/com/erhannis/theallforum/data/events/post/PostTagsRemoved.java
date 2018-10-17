@@ -6,11 +6,17 @@
 package com.erhannis.theallforum.data.events.post;
 
 import com.erhannis.theallforum.data.Handle;
+import java.util.HashSet;
+import javax.persistence.ElementCollection;
+import javax.persistence.Entity;
+import javax.persistence.OneToMany;
 
 /**
  *
  * @author erhannis
  */
+@Entity
 public class PostTagsRemoved extends PostEvent {
-  public Handle[] tags;
+  @ElementCollection
+  public HashSet<Handle> tags;
 }

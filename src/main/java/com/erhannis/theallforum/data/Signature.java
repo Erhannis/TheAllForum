@@ -5,10 +5,13 @@
  */
 package com.erhannis.theallforum.data;
 
+import javax.persistence.Embeddable;
+
 /**
  *
  * @author erhannis
  */
+@Embeddable
 public class Signature {
   public byte[] value; //TODO Add "type", etc.?
 }

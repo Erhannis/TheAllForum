@@ -5,10 +5,13 @@
  */
 package com.erhannis.theallforum.data.events.tag;
 
+import javax.persistence.Entity;
+
 /**
  *
  * @author erhannis
  */
+@Entity
 public class TagCreated extends TagEvent {
   public String text;
   

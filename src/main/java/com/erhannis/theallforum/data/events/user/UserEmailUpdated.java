@@ -5,10 +5,13 @@
  */
 package com.erhannis.theallforum.data.events.user;
 
+import javax.persistence.Entity;
+
 /**
  *
  * @author erhannis
  */
+@Entity
 public class UserEmailUpdated extends UserEvent {
   public String email;  
 }

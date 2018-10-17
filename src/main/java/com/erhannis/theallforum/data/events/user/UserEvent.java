@@ -6,11 +6,16 @@
 package com.erhannis.theallforum.data.events.user;
 
 import com.erhannis.theallforum.data.events.Event;
+import javax.persistence.Entity;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
 
 /**
  *
  * @author erhannis
  */
+@Entity
+@Inheritance(strategy = InheritanceType.JOINED)
 public class UserEvent extends Event {
   
 }

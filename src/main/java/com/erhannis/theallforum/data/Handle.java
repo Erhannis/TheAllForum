@@ -5,12 +5,22 @@
  */
 package com.erhannis.theallforum.data;
 
+import java.util.UUID;
 import javax.persistence.Embeddable;
+import javax.persistence.Entity;
+import javax.persistence.Id;
 
 /**
  *
  * @author erhannis
  */
+@Embeddable
 public class Handle {
-  public String value; //TODO Provide generation, etc.
+  public String value;
+  
+  public static Handle gen() {
+    Handle result = new Handle();
+    result.value = UUID.randomUUID().toString() + "_" + UUID.randomUUID(); //TODO This could be overkill
+    return result;
+  }
 }

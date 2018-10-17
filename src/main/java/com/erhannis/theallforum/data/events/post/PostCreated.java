@@ -6,17 +6,25 @@
 package com.erhannis.theallforum.data.events.post;
 
 import com.erhannis.theallforum.data.Handle;
+import java.util.HashSet;
+import javax.persistence.ElementCollection;
+import javax.persistence.Entity;
+import javax.persistence.OneToMany;
 
 /**
  *
  * @author erhannis
  */
+@Entity
 public class PostCreated extends PostEvent {
   // Non-editable
-  public Handle[] parents;
+  @ElementCollection
+  public HashSet<Handle> previous; //TODO Name's a bit weird
   
   // Editable
   //TODO Use the events instead, maybe?
   public String text; //TODO byte[]?
-  public Handle[] tags;
+  
+  @ElementCollection
+  public HashSet<Handle> tags;
 }

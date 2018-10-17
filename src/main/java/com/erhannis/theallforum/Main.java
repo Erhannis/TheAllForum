@@ -5,6 +5,7 @@
  */
 package com.erhannis.theallforum;
 
+import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.events.Event;
 import com.erhannis.theallforum.data.events.post.PostCreated;
 import com.erhannis.theallforum.data.events.post.PostEvent;
@@ -30,6 +31,11 @@ import com.google.gson.typeadapters.RuntimePolytypeAdapterFactory;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.List;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import spark.Spark;
 import static spark.Spark.*;
 
@@ -61,27 +67,53 @@ public class Main {
     //System.out.println(gson.toJson(PostCreated.class));
     System.out.println(gson.toJson(new PostCreated(), Event.class));
     Event test = gson.fromJson(gson.toJson(new PostCreated(), Event.class), Event.class);
-    
+
+    EntityManagerFactory factory = Persistence.createEntityManagerFactory("default");
+    {
+      EntityManager em = factory.createEntityManager();
+      em.getTransaction().begin();
+
+      PostCreated pc = new PostCreated();
+      pc.handle = Handle.gen();
+      pc.parents = new HashSet<Handle>();
+      pc.previous = new HashSet<Handle>();
+      pc.text = "This is a test.";
+      pc.timestamp = System.currentTimeMillis();
+      //TODO There are other fields
+      em.persist(pc);
+
+      em.getTransaction().commit();
+      em.close();
+    }
+
     post("/event", (req, res) -> {
       Event event = gson.fromJson(req.body(), Event.class);
       if (event instanceof PostEvent) {
-        
+
       } else if (event instanceof TagEvent) {
-        
+
       } else if (event instanceof UserEvent) {
-        
+
       } else {
         res.status(400);
       }
       return "";
     });
     get("/event", (req, res) -> {
-      return "";
+      //TODO JDBC
+      //TODO Remove or authenticate
+      EntityManager em = factory.createEntityManager();
+      List<PostCreated> pcs = em.createQuery("select pc from PostCreated pc", PostCreated.class).getResultList();
+      em.close();
+      String result = gson.toJson(pcs);
+      res.type("application/json");
+      return result;
     });
     get("/event/:id", (req, res) -> {
       return "";
     });
-    Spark.awaitStop();
-    System.exit(0);
+//    Spark.awaitStop();
+//    factory.close();
+//    System.exit(0);
   }
 }

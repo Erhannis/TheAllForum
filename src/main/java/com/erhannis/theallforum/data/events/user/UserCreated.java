@@ -7,11 +7,13 @@ package com.erhannis.theallforum.data.events.user;
 
 import java.security.KeyPairGenerator;
 import java.security.PublicKey;
+import javax.persistence.Entity;
 
 /**
  *
  * @author erhannis
  */
+@Entity
 public class UserCreated extends UserEvent {
   //TODO Should any of these things be moved to a Profile class or something?
   public String username;
@@ -27,7 +29,6 @@ public class UserCreated extends UserEvent {
    * prohibitively difficult to re-sign all the user's posts, because then you'd
    * have to re-sign all child events....hang on
    */
-  
   public PublicKey publicKey;
   
   /**
