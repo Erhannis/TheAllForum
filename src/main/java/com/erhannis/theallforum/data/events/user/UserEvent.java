@@ -16,6 +16,6 @@ import javax.persistence.InheritanceType;
  */
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
-public class UserEvent extends Event {
+public abstract class UserEvent extends Event {
   
 }

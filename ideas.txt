@@ -1,0 +1,7 @@
+New item: metadata
+  like post, but not shown as post
+  "like", "dislike", "star", "favorite", "personal tag", "bounty"
+Fake internet points
+Medals/badges
+Anonymous posts by ip?  hmm...
+Store server/client commit hashes on events?

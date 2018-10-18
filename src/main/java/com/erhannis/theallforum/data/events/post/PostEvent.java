@@ -23,23 +23,4 @@ import javax.persistence.InheritanceType;
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 public abstract class PostEvent extends Event {
-  /**
-   * The user performing the event.
-   */
-  @Embedded
-  @AttributeOverrides({
-    @AttributeOverride(name="value",column=@Column(name="userValue")),
-  })
-  public Handle user; // Handle //TODO Move to Event?
-  
-  /**
-   * The hash of the event, signed by the responsible user - should depend on
-   * the signatures of this event's `previous`, the signatures of `parents`,
-   * and every field of `this`.
-   */
-  @Embedded
-  @AttributeOverrides({
-    @AttributeOverride(name="value",column=@Column(name="signatureValue")),
-  })
-  public Signature signature; //TODO Should this be here, or in the subclasses?
 }

@@ -21,15 +21,5 @@ import javax.persistence.InheritanceType;
  */
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
-public class TagEvent extends Event {
-  /**
-   * The user performing the event.
-   */
-  @Embedded
-  @AttributeOverrides({
-    @AttributeOverride(name="value",column=@Column(name="userValue")),
-  })
-  public Handle user; //TODO Move to Event?
-
-  //TODO Should this have a hash?
+public abstract class TagEvent extends Event {
 }
