@@ -5,6 +5,7 @@
  */
 package com.erhannis.theallforum.data.events;
 
+import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.Signature;
 import com.google.common.io.ByteArrayDataOutput;
@@ -108,19 +109,19 @@ public abstract class Event {
    * @param userKey
    * @return
    */
-  public abstract Signature signUser(PrivateKey userKey);
+  public abstract Signature signUser(Context ctx, PrivateKey userKey);
 
-  public abstract Signature signServer(PrivateKey serverKey);
+  public abstract Signature signServer(Context ctx, PrivateKey serverKey);
 
-  private static Signature getServerSignature(String handleValue) {
+  private static Signature getServerSignature(Context ctx, String handleValue) {
     asdf;
   }
   
-  protected ByteArrayDataOutput signUser0(PrivateKey userKey) {
+  protected ByteArrayDataOutput signUser0(Context ctx, PrivateKey userKey) {
     ByteArrayDataOutput out = ByteStreams.newDataOutput();
     out.writeUTF(this.handle.value);
     if (this.parents != null && !this.parents.isEmpty()) {
-      List<Signature> parentSigs = this.parents.stream().map(h -> h.value).sorted().map(h -> getServerSignature(h)).collect(Collectors.toList());
+      List<Signature> parentSigs = this.parents.stream().map(h -> h.value).sorted().map(h -> getServerSignature(ctx, h)).collect(Collectors.toList());
       for (Signature parentSig : parentSigs) {
         out.write(parentSig.value);
       }
@@ -128,25 +129,25 @@ public abstract class Event {
 //    this.server;
 //    this.serverSignature;
 //    this.serverTimestamp;
-    out.write(getServerSignature(this.user.value).value);
+    out.write(getServerSignature(ctx, this.user.value).value);
 //    this.userSignature;
     out.writeLong(this.userTimestamp);
     return out;
   }
 
-  protected ByteArrayDataOutput signServer0(PrivateKey serverKey) {
+  protected ByteArrayDataOutput signServer0(Context ctx, PrivateKey serverKey) {
     ByteArrayDataOutput out = ByteStreams.newDataOutput();
     out.writeUTF(this.handle.value);
     if (this.parents != null && !this.parents.isEmpty()) {
-      List<Signature> parentSigs = this.parents.stream().map(h -> h.value).sorted().map(h -> getServerSignature(h)).collect(Collectors.toList());
+      List<Signature> parentSigs = this.parents.stream().map(h -> h.value).sorted().map(h -> getServerSignature(ctx, h)).collect(Collectors.toList());
       for (Signature parentSig : parentSigs) {
         out.write(parentSig.value);
       }
     }
-    out.write(getServerSignature(this.server.value).value);
+    out.write(getServerSignature(ctx, this.server.value).value);
 //    this.serverSignature;
     out.writeLong(this.serverTimestamp);
-    out.write(getServerSignature(this.user.value).value);
+    out.write(getServerSignature(ctx, this.user.value).value);
     out.write(this.userSignature.value);
     out.writeLong(this.userTimestamp);
     return out;

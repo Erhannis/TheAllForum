@@ -5,9 +5,15 @@
  */
 package com.erhannis.theallforum.data.events.post;
 
+import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.Signature;
 import com.erhannis.theallforum.data.events.Event;
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
+import java.security.PrivateKey;
+import java.util.List;
+import java.util.stream.Collectors;
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
