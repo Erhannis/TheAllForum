@@ -5,10 +5,14 @@
  */
 package com.erhannis.theallforum;
 
+import com.google.gson.Gson;
+import javax.persistence.EntityManagerFactory;
+
 /**
  *
  * @author erhannis
  */
 public class Context {
-  
+  public Gson gson;
+  public EntityManagerFactory factory;
 }

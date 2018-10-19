@@ -6,6 +6,7 @@
 package com.erhannis.theallforum;
 
 import com.erhannis.theallforum.data.Handle;
+import com.erhannis.theallforum.data.Signature;
 import com.erhannis.theallforum.data.events.Event;
 import com.erhannis.theallforum.data.events.post.PostCreated;
 import com.erhannis.theallforum.data.events.post.PostEvent;
@@ -15,6 +16,9 @@ import com.erhannis.theallforum.data.events.post.PostTextUpdated;
 import com.erhannis.theallforum.data.events.tag.TagEvent;
 import com.erhannis.theallforum.data.events.user.UserCreated;
 import com.erhannis.theallforum.data.events.user.UserEvent;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -30,12 +34,27 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.google.gson.typeadapters.RuntimePolytypeAdapterFactory;
 import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.SignatureException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -50,55 +69,16 @@ public class Main {
   /**
    * @param args the command line arguments
    */
-  public static void main(String[] args) {
-//    RuntimeTypeAdapterFactory<PostEvent> shapeAdapterFactory
-//            = RuntimeTypeAdapterFactory.of(PostEvent.class, "type");
-//
-//    shapeAdapterFactory.registerSubtype(PostCreated.class, "PostCreated");
-//    shapeAdapterFactory.registerSubtype(PostTagsAdded.class, "PostTagsAdded");
-//    shapeAdapterFactory.registerSubtype(PostTagsRemoved.class, "PostTagsRemoved");
-//    shapeAdapterFactory.registerSubtype(PostTextUpdated.class, "PostTextUpdated");
-//
-//    Gson gson = new GsonBuilder()
-//            .registerTypeAdapterFactory(shapeAdapterFactory)
-//            .create();
-
-    //RuntimeTypeAdapterFactory rtaf = RuntimeTypeAdapterFactory.of(Event.class, "type");
-    //rtaf.registerSubtype(PostCreated.class);
+  public static void main(String[] args) throws IOException, IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, ClassNotFoundException {
+    Context ctx = new Context();
     RuntimePolytypeAdapterFactory rtaf = RuntimePolytypeAdapterFactory.of(Event.class);
-    Gson gson = new Gson().newBuilder().registerTypeAdapterFactory(rtaf).create();
-    //System.out.println(gson.toJson(PostCreated.class));
-    System.out.println(gson.toJson(new PostCreated(), Event.class));
-    Event test = gson.fromJson(gson.toJson(new PostCreated(), Event.class), Event.class);
+    ctx.gson = new Gson().newBuilder().registerTypeAdapterFactory(rtaf).create();
+    ctx.factory = Persistence.createEntityManagerFactory("default");
 
-    EntityManagerFactory factory = Persistence.createEntityManagerFactory("default");
-    {
-      EntityManager em = factory.createEntityManager();
-      em.getTransaction().begin();
-
-      System.err.println("//TODO Generate server user");
-      
-      PostCreated pc = new PostCreated();
-      pc.handle = Handle.gen();
-      pc.parents = new HashSet<Handle>();
-      pc.previous = new HashSet<Handle>();
-      pc.tags = new HashSet<Handle>();
-      pc.text = "This is a test.";
-      pc.userTimestamp = System.currentTimeMillis();
-      pc.serverTimestamp = System.currentTimeMillis();
-      pc.server;
-      pc.serverSignature;
-      pc.user;
-      pc.userSignature;
-      //TODO There are other fields
-      em.persist(pc);
-
-      em.getTransaction().commit();
-      em.close();
-    }
+    KeyFile kf = getKeyFile(ctx, "./id.txt");
 
     staticFileLocation("/public");
-    startApi(factory, gson);
+    startApi(ctx);
     get("*", (req, res) -> {
       res.status(404);
       return "404'd!";
@@ -108,13 +88,13 @@ public class Main {
 //    System.exit(0);
   }
 
-  public static void startApi(EntityManagerFactory factory, Gson gson) {
+  public static void startApi(Context ctx) {
     String prefix = "/api";
     post(prefix + "/event", (req, res) -> {
-      Event event = gson.fromJson(req.body(), Event.class);
+      Event event = ctx.gson.fromJson(req.body(), Event.class);
       if (event instanceof PostEvent) {
         if (event instanceof PostCreated) {
-          PostCreated pc = (PostCreated)event;
+          PostCreated pc = (PostCreated) event;
           /*
           Ok, so.
           
@@ -141,7 +121,7 @@ public class Main {
           4. What if a user timestamped and signed a message, then sent it to the server to be timestamped and signed by the server, too?
           It's more complicated, but I kinda like it.  It furthermore allows different servers' influences to be marked.  I don;t know what THAT gains us exactly, but I kinda like it.
           
-          */
+           */
           asdf();
         } else if (event instanceof PostTextUpdated) {
           asdf();
@@ -166,10 +146,10 @@ public class Main {
     get(prefix + "/event", (req, res) -> {
       //TODO JDBC
       //TODO Remove or authenticate
-      EntityManager em = factory.createEntityManager();
+      EntityManager em = ctx.factory.createEntityManager();
       List<PostCreated> pcs = em.createQuery("select pc from PostCreated pc", PostCreated.class).getResultList();
       em.close();
-      String result = gson.toJson(pcs);
+      String result = ctx.gson.toJson(pcs);
       res.type("application/json");
       return result;
     });
@@ -178,38 +158,56 @@ public class Main {
     });
   }
 
-  private static Handle getThisServer(Gson gson) throws IOException {
-    File idFile = new File("./id.txt");
+  private static KeyFile getKeyFile(Context ctx, String path) throws IOException, IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, ClassNotFoundException {
+    File idFile = new File(path);
     if (idFile.exists()) {
-      asdf();
+      String currentHash = getHash();
+      String hash = "UNKNOWN";
+      try (FileInputStream fis = new FileInputStream(idFile); ObjectInputStream ois = new ObjectInputStream(fis)) {
+        hash = ois.readUTF();
+        return (KeyFile)ois.readObject();
+      } catch (Exception e) {
+        throw new RuntimeException("Error reading key file.  Server commit hash: " + currentHash + "  File commit hash: " + hash, e);
+      }
     } else {
       if (idFile.createNewFile()) {
-        FileWriter fw = new FileWriter(idFile);
-        
-        UserCreated uc = new UserCreated();
-        uc.handle = Handle.gen();
-        uc.username = null;
-        uc.avatarUrl = null;
-        uc.description = "AUTOGENERATED SERVER USER";
-        uc.email = null;
-        uc.parents = new HashSet<Handle>();
-        uc.privateKeyEncrypted;
-        uc.publicKey;
-        uc.user = uc.handle;
-        uc.userTimestamp = System.currentTimeMillis();
-        uc.userSignature;
-        uc.server = uc.user;
-        uc.serverTimestamp = uc.userTimestamp;
-        uc.serverSignature;
-        
-        fw.append(gson.toJson());
-        fw.flush();
-        fw.close();
+        try (FileOutputStream fos = new FileOutputStream(idFile); ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+          KeyPairGenerator kpg = KeyPairGenerator.getInstance(Constants.KEY_ALGORITHM);
+          kpg.initialize(Constants.KEY_BITS);
+          KeyPair keyPair = kpg.genKeyPair();
+
+          UserCreated uc = new UserCreated();
+          uc.handle = Handle.gen();
+          uc.username = null;
+          uc.avatarUrl = null;
+          uc.description = "AUTOGENERATED SERVER USER";
+          uc.email = null;
+          uc.parents = new HashSet<Handle>();
+          uc.privateKeyEncrypted = null;
+          uc.publicKey = keyPair.getPublic();
+          uc.user = uc.handle;
+          uc.userTimestamp = System.currentTimeMillis();
+          uc.userSignature = Signature.signUser(ctx, uc, keyPair.getPrivate());
+          uc.server = uc.user;
+          uc.serverTimestamp = uc.userTimestamp;
+          uc.serverSignature = Signature.signServer(ctx, uc, keyPair.getPrivate());
+
+          EntityManager em = ctx.factory.createEntityManager();
+          em.getTransaction().begin();
+          em.persist(uc);
+          em.getTransaction().commit();
+          
+          KeyFile kf = new KeyFile(uc.handle, keyPair.getPrivate());
+          oos.writeUTF(getHash());
+          oos.writeObject(kf);
+          oos.flush();
+          return kf;
+        }
       } else {
         throw new IOException("Can't create id file");
       }
     }
   }
-  
+
   //public static void asdf() {throw new RuntimeException();}
 }

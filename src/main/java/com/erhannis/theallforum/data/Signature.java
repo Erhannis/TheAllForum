@@ -5,6 +5,7 @@
  */
 package com.erhannis.theallforum.data;
 
+import com.erhannis.theallforum.Constants;
 import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.events.Event;
 import com.google.common.io.ByteArrayDataOutput;
@@ -15,6 +16,7 @@ import java.lang.reflect.Type;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,7 +58,7 @@ public class Signature {
     asdf;
   }
   
-  protected byte[] sign(Context ctx, Event event, PrivateKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {
+  protected static byte[] sign(Context ctx, Event event, PrivateKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {
     //TODO Might be able to use SignedObject instead of all this?  Don't think so, though
     LinkedList<Class<?>> clazzes = new LinkedList<>();
     Class<?> curClazz = event.getClass();
@@ -111,8 +113,17 @@ public class Signature {
             } else {
               out.write(getServerSignature(ctx, ((Handle)field.get(event)).value).value);
             }
+          } else if (type == Signature.class) {
+            out.write(((Signature)field.get(event)).value);
           } else if (type == String.class) {
             out.writeUTF((String)field.get(event));
+          } else if (type == PublicKey.class) {
+            PublicKey publicKey = ((PublicKey)field.get(event));
+            out.writeUTF(publicKey.getAlgorithm());
+            out.writeUTF(publicKey.getFormat());
+            out.write(publicKey.getEncoded());
+          } else if (type == byte[].class) {
+            out.write((byte[])field.get(event));
           } else if (type == HashSet.class) { //TODO Note this kinda restricts the use of other Collections
             if (genericType instanceof ParameterizedType) {
               if (((ParameterizedType)genericType).getActualTypeArguments()[0] == Handle.class) {
@@ -143,7 +154,7 @@ public class Signature {
     byte[] data = out.toByteArray();
     
     //TODO Need to make sure key algorithm matches
-    java.security.Signature sig = java.security.Signature.getInstance("SHA512withRSA");
+    java.security.Signature sig = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
     sig.initSign(key);
     sig.update(data);
     byte[] signatureBytes = sig.sign();
@@ -151,5 +162,15 @@ public class Signature {
     return signatureBytes;
   }
 
+  public static Signature signUser(Context ctx, Event event, PrivateKey userKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+    Signature result = new Signature();
+    result.value = sign(ctx, event, userKey, true);
+    return result;
+  }
 
+  public static Signature signServer(Context ctx, Event event, PrivateKey serverKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+    Signature result = new Signature();
+    result.value = sign(ctx, event, serverKey, false);
+    return result;
+  }
 }

@@ -75,15 +75,4 @@ public class UserCreated extends UserEvent {
    * access to the private key?
    */
   public byte[] privateKeyEncrypted; //TODO Verify correct decryption?
-
-  @Override
-  public Signature signUser(PrivateKey userKey) {
-    java.security.Signature.getInstance("")
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-  }
-
-  @Override
-  public Signature signServer(PrivateKey serverKey) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-  }
 }
