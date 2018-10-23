@@ -7,6 +7,7 @@ package com.erhannis.theallforum.data;
 
 import com.erhannis.theallforum.Constants;
 import com.erhannis.theallforum.Context;
+import com.erhannis.theallforum.Main;
 import com.erhannis.theallforum.data.events.Event;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
@@ -55,7 +56,8 @@ public class Signature {
   public byte[] value; //TODO Add "type", etc.?
 
   private static Signature getServerSignature(Context ctx, String handleValue) {
-    asdf;
+    Main.asdf();
+    return null;
   }
   
   protected static byte[] sign(Context ctx, Event event, PrivateKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {

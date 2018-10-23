@@ -16,9 +16,6 @@ import com.erhannis.theallforum.data.events.post.PostTextUpdated;
 import com.erhannis.theallforum.data.events.tag.TagEvent;
 import com.erhannis.theallforum.data.events.user.UserCreated;
 import com.erhannis.theallforum.data.events.user.UserEvent;
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -45,6 +42,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -53,6 +52,8 @@ import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.EntityManager;
@@ -165,7 +166,7 @@ public class Main {
       String hash = "UNKNOWN";
       try (FileInputStream fis = new FileInputStream(idFile); ObjectInputStream ois = new ObjectInputStream(fis)) {
         hash = ois.readUTF();
-        return (KeyFile)ois.readObject();
+        return (KeyFile) ois.readObject();
       } catch (Exception e) {
         throw new RuntimeException("Error reading key file.  Server commit hash: " + currentHash + "  File commit hash: " + hash, e);
       }
@@ -196,7 +197,7 @@ public class Main {
           em.getTransaction().begin();
           em.persist(uc);
           em.getTransaction().commit();
-          
+
           KeyFile kf = new KeyFile(uc.handle, keyPair.getPrivate());
           oos.writeUTF(getHash());
           oos.writeObject(kf);
@@ -209,5 +210,22 @@ public class Main {
     }
   }
 
-  //public static void asdf() {throw new RuntimeException();}
+  public static String getHash() {
+    try {
+      String className = Main.class.getSimpleName() + ".class";
+      String classPath = Main.class.getResource(className).toString();
+      if (!classPath.startsWith("jar")) {
+        return "unknown";
+      }
+      String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
+      Manifest manifest = new Manifest(new URL(manifestPath).openStream());
+      Attributes attr = manifest.getMainAttributes();
+      return attr.getValue("git-hash");
+    } catch (IOException e) {
+      Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, e);
+      return "unknown";
+    }
+  }
+
+  public static void asdf() {throw new RuntimeException();}
 }
