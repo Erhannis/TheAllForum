@@ -67,16 +67,21 @@ import static spark.Spark.*;
  * @author erhannis
  */
 public class Main {
+  private static Logger LOGGER = Logger.getLogger(Main.class.getName());
+  
   /**
    * @param args the command line arguments
    */
   public static void main(String[] args) throws IOException, IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, ClassNotFoundException {
+    LOGGER.info("Server startup");
+    LOGGER.info("Commit hash: " + getHash());
+
     Context ctx = new Context();
     RuntimePolytypeAdapterFactory rtaf = RuntimePolytypeAdapterFactory.of(Event.class);
     ctx.gson = new Gson().newBuilder().registerTypeAdapterFactory(rtaf).create();
     ctx.factory = Persistence.createEntityManagerFactory("default");
 
-    KeyFile kf = getKeyFile(ctx, "./id.txt");
+    KeyFile kf = getKeyFile(ctx, "./private.key");
 
     staticFileLocation("/public");
     startApi(ctx);
