@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.persistence.AttributeOverride;
@@ -52,12 +53,11 @@ public abstract class Event {
 
   @EmbeddedId
   @AttributeOverrides({ //TODO UGGGH, this is the worst.
-
     @AttributeOverride(name = "value", column = @Column(name = "eventHandle")),})
   public Handle handle;
 
   @ElementCollection
-  public HashSet<Handle> parents; //TODO Is this a good idea, actually?  This could be...confusing.  Particularly the multiples.
+  public Set<Handle> parents; //TODO Is this a good idea, actually?  This could be...confusing.  Particularly the multiples.
 
   public long userTimestamp;
   public long serverTimestamp;

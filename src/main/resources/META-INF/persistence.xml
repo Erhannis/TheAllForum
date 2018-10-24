@@ -7,7 +7,6 @@
       <property name="javax.persistence.jdbc.driver" value="org.sqlite.JDBC" />
       <property name="javax.persistence.jdbc.url" value="jdbc:sqlite:./test.db" />
       
-<!--      <property name="eclipselink.session.customizer" value="com.erhannis.theallforum.EmbeddedFieldNamesSessionCustomizer"/> -->
       <property name="javax.persistence.schema-generation.database.action" value="create"/>
     </properties>
   </persistence-unit>

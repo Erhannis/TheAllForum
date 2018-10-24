@@ -5,7 +5,9 @@
  */
 package com.erhannis.theallforum.data;
 
+import java.util.Arrays;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.persistence.Embeddable;
 import javax.persistence.Entity;
 import javax.persistence.Id;

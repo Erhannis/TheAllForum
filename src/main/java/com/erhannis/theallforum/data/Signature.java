@@ -20,10 +20,9 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SignatureException;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.persistence.Embeddable;
 
@@ -126,10 +125,10 @@ public class Signature {
             out.write(publicKey.getEncoded());
           } else if (type == byte[].class) {
             out.write((byte[])field.get(event));
-          } else if (type == HashSet.class) { //TODO Note this kinda restricts the use of other Collections
+          } else if (type == Set.class) { //TODO Note this kinda restricts the use of other Collections
             if (genericType instanceof ParameterizedType) {
               if (((ParameterizedType)genericType).getActualTypeArguments()[0] == Handle.class) {
-                HashSet<Handle> set = (HashSet<Handle>)field.get(event);
+                Set<Handle> set = (Set<Handle>)field.get(event);
                 if (set.contains(null) || set.stream().anyMatch(h -> h.value == null)) {
                   throw new IllegalArgumentException("Field contains nulls: " + field);
                 }

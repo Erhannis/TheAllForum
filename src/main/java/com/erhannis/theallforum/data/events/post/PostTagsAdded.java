@@ -7,6 +7,7 @@ package com.erhannis.theallforum.data.events.post;
 
 import com.erhannis.theallforum.data.Handle;
 import java.util.HashSet;
+import java.util.Set;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
@@ -18,5 +19,5 @@ import javax.persistence.OneToMany;
 @Entity
 public class PostTagsAdded extends PostEvent {
   @ElementCollection
-  public HashSet<Handle> tags;
+  public Set<Handle> tags;
 }
