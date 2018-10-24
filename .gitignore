@@ -4,3 +4,5 @@ dist/
 target/
 *~
 *.db
+/.project
+/dependency-reduced-pom.xml
