@@ -6,13 +6,14 @@
 package com.erhannis.theallforum;
 
 import com.erhannis.theallforum.data.Handle;
+import java.io.Serializable;
 import java.security.PrivateKey;
 
 /**
  *
  * @author erhannis
  */
-public class KeyFile {
+public class KeyFile implements Serializable {
   public Handle serverHandle;
   public PrivateKey serverPrivateKey;
 

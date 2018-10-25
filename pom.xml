@@ -28,7 +28,7 @@
     </dependency>
     <dependency>
       <groupId>org.eclipse.persistence</groupId>
-      <artifactId>eclipselink</artifactId>
+      <artifactId>org.eclipse.persistence.jpa</artifactId>
       <version>2.7.3</version>
     </dependency>
     <dependency>

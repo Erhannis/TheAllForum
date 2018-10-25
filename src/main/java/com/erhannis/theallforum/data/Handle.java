@@ -5,6 +5,7 @@
  */
 package com.erhannis.theallforum.data;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -17,7 +18,7 @@ import javax.persistence.Id;
  * @author erhannis
  */
 @Embeddable
-public class Handle {
+public class Handle implements Serializable {
   public String value;
   
   public static Handle gen() {

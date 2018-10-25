@@ -153,9 +153,10 @@ public class Main {
       //TODO JDBC
       //TODO Remove or authenticate
       EntityManager em = ctx.factory.createEntityManager();
-      List<PostCreated> pcs = em.createQuery("select pc from PostCreated pc", PostCreated.class).getResultList();
+      List<Event> es = em.createQuery("select e from Event e", Event.class).getResultList();
       em.close();
-      String result = ctx.gson.toJson(pcs);
+      //TODO Trying to get polymorphism to work
+      String result = ctx.gson.toJson(es);
       res.type("application/json");
       return result;
     });

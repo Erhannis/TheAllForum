@@ -55,11 +55,14 @@ public class Signature {
   public byte[] value; //TODO Add "type", etc.?
 
   private static Signature getServerSignature(Context ctx, String handleValue) {
-    Main.asdf();
-    return null;
+    Signature result = new Signature();
+    result.value = new byte[0];
+    return result;
   }
   
   protected static byte[] sign(Context ctx, Event event, PrivateKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {
+    //TODO Waaait, you might be able to construct a collision
+    System.err.println("WARNING: update Signature.sign() to prevent collision attack");
     //TODO Might be able to use SignedObject instead of all this?  Don't think so, though
     LinkedList<Class<?>> clazzes = new LinkedList<>();
     Class<?> curClazz = event.getClass();
@@ -108,7 +111,11 @@ public class Signature {
         } else {
           // An object of some kind
           Type genericType = field.getGenericType();
-          if (type == Handle.class) {
+          Object o = field.get(event);
+          if (o == null) {
+            //TODO Could this be used for evil?  Say, avoiding including a foreign signature?
+            out.writeUTF("null");
+          } else if (type == Handle.class) {
             if ("handle".equals(field.getName()) && field.getDeclaringClass() == Event.class) {
               out.writeUTF(((Handle)field.get(event)).value);
             } else {
