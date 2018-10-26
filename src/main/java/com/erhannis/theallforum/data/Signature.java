@@ -9,11 +9,17 @@ import com.erhannis.theallforum.Constants;
 import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.Main;
 import com.erhannis.theallforum.data.events.Event;
+import com.google.common.hash.Hashing;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.security.DigestInputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -55,14 +61,14 @@ public class Signature {
   public byte[] value; //TODO Add "type", etc.?
 
   private static Signature getServerSignature(Context ctx, String handleValue) {
+    System.err.println("NOT YET IMPLEMENTED: getServerSignature");
     Signature result = new Signature();
     result.value = new byte[0];
+    Main.asdf();
     return result;
   }
-  
-  protected static byte[] sign(Context ctx, Event event, PrivateKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {
-    //TODO Waaait, you might be able to construct a collision
-    System.err.println("WARNING: update Signature.sign() to prevent collision attack");
+
+  protected static byte[] toBytes(Context ctx, Event event, boolean isUserSignature) throws IllegalArgumentException, IllegalAccessException {
     //TODO Might be able to use SignedObject instead of all this?  Don't think so, though
     LinkedList<Class<?>> clazzes = new LinkedList<>();
     Class<?> curClazz = event.getClass();
@@ -85,7 +91,7 @@ public class Signature {
             continue;
           }
         } else {
-          if ("userSignature".equals(field.getName())) {
+          if ("serverSignature".equals(field.getName())) {
             continue;
           }
         }
@@ -93,55 +99,88 @@ public class Signature {
         Class<?> type = field.getType();
         boolean failure = false;
         if (type == boolean.class) {
-          out.writeBoolean(field.getBoolean(event));
+          byte[] val = ToBytes.toBytesBoolean(field.getBoolean(event));
+          out.writeInt(val.length);
+          out.write(val);
         } else if (type == byte.class) {
-          out.writeByte(field.getByte(event));
+          byte[] val = ToBytes.toBytesByte(field.getByte(event));
+          out.writeInt(val.length);
+          out.write(val);
         } else if (type == char.class) {
-          out.writeChar(field.getChar(event));
+          byte[] val = ToBytes.toBytesChar(field.getChar(event));
+          out.writeInt(val.length);
+          out.write(val);
         } else if (type == double.class) {
-          out.writeDouble(field.getDouble(event));
+          byte[] val = ToBytes.toBytesDouble(field.getDouble(event));
+          out.writeInt(val.length);
+          out.write(val);
         } else if (type == float.class) {
-          out.writeFloat(field.getFloat(event));
+          byte[] val = ToBytes.toBytesFloat(field.getFloat(event));
+          out.writeInt(val.length);
+          out.write(val);
         } else if (type == int.class) {
-          out.writeInt(field.getInt(event));
+          byte[] val = ToBytes.toBytesInt(field.getInt(event));
+          out.writeInt(val.length);
+          out.write(val);
         } else if (type == long.class) {
-          out.writeLong(field.getLong(event));
+          byte[] val = ToBytes.toBytesLong(field.getLong(event));
+          out.writeInt(val.length);
+          out.write(val);
         } else if (type == short.class) {
-          out.writeShort(field.getShort(event));
+          byte[] val = ToBytes.toBytesShort(field.getShort(event));
+          out.writeInt(val.length);
+          out.write(val);
         } else {
           // An object of some kind
           Type genericType = field.getGenericType();
           Object o = field.get(event);
           if (o == null) {
-            //TODO Could this be used for evil?  Say, avoiding including a foreign signature?
-            out.writeUTF("null");
+            out.writeInt(0);
           } else if (type == Handle.class) {
             if ("handle".equals(field.getName()) && field.getDeclaringClass() == Event.class) {
-              out.writeUTF(((Handle)field.get(event)).value);
+              byte[] val = ToBytes.toBytesUTF(((Handle) field.get(event)).value);
+              out.writeInt(val.length);
+              out.write(val);
             } else {
-              out.write(getServerSignature(ctx, ((Handle)field.get(event)).value).value);
+              byte[] val = getServerSignature(ctx, ((Handle) field.get(event)).value).value;
+              out.writeInt(val.length);
+              out.write(val);
             }
           } else if (type == Signature.class) {
-            out.write(((Signature)field.get(event)).value);
+            byte[] val = ((Signature) field.get(event)).value;
+            out.writeInt(val.length);
+            out.write(val);
           } else if (type == String.class) {
-            out.writeUTF((String)field.get(event));
+            byte[] val = ToBytes.toBytesUTF((String) field.get(event));
+            out.writeInt(val.length);
+            out.write(val);
           } else if (type == PublicKey.class) {
-            PublicKey publicKey = ((PublicKey)field.get(event));
-            out.writeUTF(publicKey.getAlgorithm());
-            out.writeUTF(publicKey.getFormat());
-            out.write(publicKey.getEncoded());
+            PublicKey publicKey = ((PublicKey) field.get(event));
+            byte[] val0 = ToBytes.toBytesUTF(publicKey.getAlgorithm());
+            out.writeInt(val0.length);
+            out.write(val0);
+            byte[] val1 = ToBytes.toBytesUTF(publicKey.getFormat());
+            out.writeInt(val1.length);
+            out.write(val1);
+            byte[] val2 = publicKey.getEncoded();
+            out.writeInt(val2.length);
+            out.write(val2);
           } else if (type == byte[].class) {
-            out.write((byte[])field.get(event));
+            byte[] val = (byte[]) field.get(event);
+            out.writeInt(val.length);
+            out.write(val);
           } else if (type == Set.class) { //TODO Note this kinda restricts the use of other Collections
             if (genericType instanceof ParameterizedType) {
-              if (((ParameterizedType)genericType).getActualTypeArguments()[0] == Handle.class) {
-                Set<Handle> set = (Set<Handle>)field.get(event);
+              if (((ParameterizedType) genericType).getActualTypeArguments()[0] == Handle.class) {
+                Set<Handle> set = (Set<Handle>) field.get(event);
                 if (set.contains(null) || set.stream().anyMatch(h -> h.value == null)) {
                   throw new IllegalArgumentException("Field contains nulls: " + field);
                 }
                 List<Handle> handles = set.stream().sorted((a, b) -> a.value.compareTo(b.value)).collect(Collectors.toList());
                 for (Handle handle : handles) {
-                  out.write(getServerSignature(ctx, handle.value).value);
+                  byte[] val = getServerSignature(ctx, handle.value).value;
+                  out.writeInt(val.length);
+                  out.write(val);
                 }
               } else {
                 failure = true;
@@ -159,11 +198,31 @@ public class Signature {
       }
     }
 
-    byte[] data = out.toByteArray();
-    
+    return out.toByteArray();
+  }
+  
+  protected static boolean verify(Context ctx, Event event, byte[] signature, PublicKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {
+    //TODO Need to make sure key algorithm matches
+    java.security.Signature sig = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
+    sig.initVerify(key);
+    byte[] data = toBytes(ctx, event, isUserSignature);
+    sig.update(data);
+    return sig.verify(signature);
+  }
+
+  public static boolean verifyUser(Context ctx, Event event, byte[] signature, PublicKey userKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+    return verify(ctx, event, signature, userKey, true);
+  }
+  
+  public static boolean verifyServer(Context ctx, Event event, byte[] signature, PublicKey serverKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+    return verify(ctx, event, signature, serverKey, false);
+  }
+  
+  protected static byte[] sign(Context ctx, Event event, PrivateKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {
     //TODO Need to make sure key algorithm matches
     java.security.Signature sig = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
     sig.initSign(key);
+    byte[] data = toBytes(ctx, event, isUserSignature);
     sig.update(data);
     byte[] signatureBytes = sig.sign();
 
@@ -180,5 +239,80 @@ public class Signature {
     Signature result = new Signature();
     result.value = sign(ctx, event, serverKey, false);
     return result;
+  }
+
+  //TODO This all is pretty overkill; way more computation than desirable.
+  private static class ToBytes {
+    public static byte[] toBytes(int b) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.write(b);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytes(byte[] b) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.write(b);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesBoolean(boolean v) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeBoolean(v);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesByte(int v) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeByte(v);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesShort(int v) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeShort(v);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesChar(int v) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeChar(v);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesInt(int v) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeInt(v);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesLong(long v) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeLong(v);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesFloat(float v) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeFloat(v);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesDouble(double v) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeDouble(v);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesChars(String s) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeChars(s);
+      return out.toByteArray();
+    }
+
+    public static byte[] toBytesUTF(String s) {
+      ByteArrayDataOutput out = ByteStreams.newDataOutput();
+      out.writeUTF(s);
+      return out.toByteArray();
+    }
   }
 }
