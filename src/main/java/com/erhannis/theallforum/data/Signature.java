@@ -68,6 +68,28 @@ public class Signature {
     return result;
   }
 
+  /**
+   * Serializes an event to bytes, for hashing/signing.<br/>
+   * Processes from superclass to subclass.<br/>
+   * Iterates through fields by name in alphabetical order.<br/>
+   * For each field f, f is serialized to a byte array via
+   * com.google.common.io.ByteStreams.newDataOutput()'s `writeX`
+   * methods, then its length is written to the output, followed
+   * by the serialization of f itself.<br/>
+   * Only a particular set of field classes are supported for
+   * serialization. Read the code to figure it out.<br/>
+   * If `isUserSignature`, skips fields named `serverSignature`, `serverTimestamp`,
+   * or `userSignature`, because they won't have happened yet.<br/>
+   * If not `isUserSignature`, skips fields named `serverSignature`,
+   * because it won't have happened yet.<br/>
+   * 
+   * @param ctx
+   * @param event
+   * @param isUserSignature
+   * @return
+   * @throws IllegalArgumentException
+   * @throws IllegalAccessException 
+   */
   protected static byte[] toBytes(Context ctx, Event event, boolean isUserSignature) throws IllegalArgumentException, IllegalAccessException {
     //TODO Might be able to use SignedObject instead of all this?  Don't think so, though
     LinkedList<Class<?>> clazzes = new LinkedList<>();
@@ -142,9 +164,13 @@ public class Signature {
               out.writeInt(val.length);
               out.write(val);
             } else {
-              byte[] val = getServerSignature(ctx, ((Handle) field.get(event)).value).value;
-              out.writeInt(val.length);
-              out.write(val);
+              Handle handle = ((Handle) field.get(event));
+              byte[] val0 = ToBytes.toBytesUTF(handle.value);
+              out.writeInt(val0.length);
+              out.write(val0);
+              byte[] val1 = getServerSignature(ctx, handle.value).value;
+              out.writeInt(val1.length);
+              out.write(val1);
             }
           } else if (type == Signature.class) {
             byte[] val = ((Signature) field.get(event)).value;
@@ -178,9 +204,12 @@ public class Signature {
                 }
                 List<Handle> handles = set.stream().sorted((a, b) -> a.value.compareTo(b.value)).collect(Collectors.toList());
                 for (Handle handle : handles) {
-                  byte[] val = getServerSignature(ctx, handle.value).value;
-                  out.writeInt(val.length);
-                  out.write(val);
+                  byte[] val0 = ToBytes.toBytesUTF(handle.value);
+                  out.writeInt(val0.length);
+                  out.write(val0);
+                  byte[] val1 = getServerSignature(ctx, handle.value).value;
+                  out.writeInt(val1.length);
+                  out.write(val1);
                 }
               } else {
                 failure = true;

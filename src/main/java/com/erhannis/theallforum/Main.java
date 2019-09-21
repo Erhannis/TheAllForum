@@ -198,7 +198,7 @@ public class Main {
           uc.server = uc.user;
           uc.serverTimestamp = uc.userTimestamp;
           uc.serverSignature = Signature.signServer(ctx, uc, keyPair.getPrivate());
-
+          
           EntityManager em = ctx.factory.createEntityManager();
           em.getTransaction().begin();
           em.persist(uc);
