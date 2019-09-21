@@ -15,4 +15,5 @@ import javax.persistence.EntityManagerFactory;
 public class Context {
   public Gson gson;
   public EntityManagerFactory factory;
+  public KeyFile keyFile; //TODO Is this dangerous?
 }

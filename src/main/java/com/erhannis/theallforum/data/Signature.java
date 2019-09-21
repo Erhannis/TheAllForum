@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.persistence.Embeddable;
+import javax.persistence.EntityManager;
 
 /**
  * Ok, listen up. Here's how signatures work, until further notice. Assuming
@@ -61,11 +62,12 @@ public class Signature {
   public byte[] value; //TODO Add "type", etc.?
 
   private static Signature getServerSignature(Context ctx, String handleValue) {
-    System.err.println("NOT YET IMPLEMENTED: getServerSignature");
-    Signature result = new Signature();
-    result.value = new byte[0];
-    Main.asdf();
-    return result;
+    EntityManager em = ctx.factory.createEntityManager(); //TODO Is this heavy?
+    Event evt = em.createQuery("SELECT evt FROM Event evt where evt.handle.value = :handle", Event.class)
+            .setParameter("handle", handleValue)
+            .getSingleResult();
+    em.close();
+    return evt.serverSignature;
   }
 
   /**
@@ -169,8 +171,13 @@ public class Signature {
               out.writeInt(val0.length);
               out.write(val0);
               byte[] val1 = getServerSignature(ctx, handle.value).value;
-              out.writeInt(val1.length);
-              out.write(val1);
+              if (val1 == null) {
+                failure = true;
+                //TODO Error message?
+              } else {
+                out.writeInt(val1.length);
+                out.write(val1);
+              }
             }
           } else if (type == Signature.class) {
             byte[] val = ((Signature) field.get(event)).value;
@@ -208,8 +215,13 @@ public class Signature {
                   out.writeInt(val0.length);
                   out.write(val0);
                   byte[] val1 = getServerSignature(ctx, handle.value).value;
-                  out.writeInt(val1.length);
-                  out.write(val1);
+                  if (val1 == null) {
+                    failure = true;
+                    //TODO Error message?
+                  } else {
+                      out.writeInt(val1.length);
+                      out.write(val1);
+                  }
                 }
               } else {
                 failure = true;

@@ -16,6 +16,12 @@ import com.erhannis.theallforum.data.events.post.PostTextUpdated;
 import com.erhannis.theallforum.data.events.tag.TagEvent;
 import com.erhannis.theallforum.data.events.user.UserCreated;
 import com.erhannis.theallforum.data.events.user.UserEvent;
+import com.google.crypto.tink.Aead;
+import com.google.crypto.tink.KeysetHandle;
+import com.google.crypto.tink.aead.AeadConfig;
+import com.google.crypto.tink.aead.AeadKeyTemplates;
+import com.google.crypto.tink.config.TinkConfig;
+import com.google.crypto.tink.subtle.AesGcmJce;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -44,21 +50,31 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.SignatureException;
+import java.security.spec.KeySpec;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import org.apache.commons.codec.digest.DigestUtils;
 import spark.Spark;
 import static spark.Spark.*;
 
@@ -72,7 +88,7 @@ public class Main {
   /**
    * @param args the command line arguments
    */
-  public static void main(String[] args) throws IOException, IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, ClassNotFoundException {
+  public static void main(String[] args) throws IOException, IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, ClassNotFoundException, GeneralSecurityException {
     LOGGER.info("Server startup");
     LOGGER.info("Commit hash: " + getHash());
 
@@ -80,9 +96,10 @@ public class Main {
     RuntimePolytypeAdapterFactory rtaf = RuntimePolytypeAdapterFactory.of(Event.class);
     ctx.gson = new Gson().newBuilder().registerTypeAdapterFactory(rtaf).create();
     ctx.factory = Persistence.createEntityManagerFactory("default");
+    ctx.keyFile = getKeyFile(ctx, "./private.key");
 
-    KeyFile kf = getKeyFile(ctx, "./private.key");
-
+    AeadConfig.register();
+    
     staticFileLocation("/public");
     startApi(ctx);
     get("*", (req, res) -> {
@@ -163,6 +180,33 @@ public class Main {
     get(prefix + "/event/:id", (req, res) -> {
       return "";
     });
+    get(prefix + "/test_create_user/:username/:password", (req, res) -> {
+      String username = req.params("username");
+      String password = req.params("password");
+      if (username == null || password == null) {
+        res.status(400);
+        return "Error; username or password missing";
+      }
+      return ctx.gson.toJson(createUserTest(ctx, username, password));
+    });
+    Spark.delete(prefix + "/event/:id", (req, res) -> {
+      //TODO Authentication
+      //TODO Also, deletion is bad in this system
+      String handle = req.params("id");
+      if (handle == null) {
+        res.status(400);
+        return "Error: id missing";
+      }
+      EntityManager em = ctx.factory.createEntityManager();
+      em.getTransaction().begin();
+      int deleted = em.createQuery("delete from Event evt where evt.handle.value = :id")
+              .setParameter("id", handle)
+              .executeUpdate();
+      em.getTransaction().commit();
+      System.out.println("deleted " + deleted);
+      res.type("application/json");
+      return "" + deleted; //TODO Should return deleted event?
+    });
   }
 
   private static KeyFile getKeyFile(Context ctx, String path) throws IOException, IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, ClassNotFoundException {
@@ -203,6 +247,7 @@ public class Main {
           em.getTransaction().begin();
           em.persist(uc);
           em.getTransaction().commit();
+          em.close();
 
           KeyFile kf = new KeyFile(uc.handle, keyPair.getPrivate());
           oos.writeUTF(getHash());
@@ -231,6 +276,56 @@ public class Main {
       Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, e);
       return "unknown";
     }
+  }
+  
+  private static UserCreated createUserTest(Context ctx, String username, String password) throws NoSuchAlgorithmException, IllegalAccessException, InvalidKeyException, SignatureException, IOException, GeneralSecurityException {
+    //TODO Allow users to provide their own key
+    KeyPairGenerator kpg = KeyPairGenerator.getInstance(Constants.KEY_ALGORITHM);
+    kpg.initialize(Constants.KEY_BITS);
+    KeyPair keyPair = kpg.genKeyPair();
+    
+    UserCreated uc = new UserCreated();
+    uc.handle = Handle.gen();
+    //TODO Check username availability
+    System.err.println("Make sure to check username available before creating");
+    uc.username = username;
+    uc.avatarUrl = null;
+    uc.description = "You're a kitty!";
+    uc.email = "email@internet.com";
+    uc.parents = new HashSet<Handle>();
+    uc.privateKeyEncrypted = encryptKey(keyPair.getPrivate(), password);
+    uc.publicKey = keyPair.getPublic();
+    uc.user = null;
+    uc.userTimestamp = 0;
+    uc.userSignature = null;
+    uc.server = ctx.keyFile.serverHandle;
+    uc.serverTimestamp = System.currentTimeMillis();
+    uc.serverSignature = sign(ctx, uc);
+
+    EntityManager em = ctx.factory.createEntityManager();
+    em.getTransaction().begin();
+    em.persist(uc);
+    em.getTransaction().commit();
+    em.close();
+    
+    return uc;
+  }
+  
+  private static byte[] encryptKey(PrivateKey key, String password) throws IOException, GeneralSecurityException {
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+      oos.writeObject(key);
+      oos.flush();
+
+      //TODO AesGcmJce is unsupported, and pure SHA256 is prolly a poor key-derivation function
+      AesGcmJce agj = new AesGcmJce(DigestUtils.sha256(password));
+      byte[] ciphertext = agj.encrypt(baos.toByteArray(), null);
+
+      return ciphertext;
+    }
+  }
+  
+  private static Signature sign(Context ctx, Event evt) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+    return Signature.signServer(ctx, evt, ctx.keyFile.serverPrivateKey);
   }
 
   public static void asdf() {throw new RuntimeException();}
