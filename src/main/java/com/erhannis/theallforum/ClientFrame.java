@@ -5,17 +5,19 @@
  */
 package com.erhannis.theallforum;
 
+import com.erhannis.theallforum.data.Handle;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JTextField;
 
 /**
  *
  * @author erhannis
  */
 public class ClientFrame extends javax.swing.JFrame {
-
+  private Handle userHandle;
   private String username;
   private String password; //TODO Should probably log in once and exchange for token...maybe
 
@@ -109,25 +111,29 @@ public class ClientFrame extends javax.swing.JFrame {
   }//GEN-LAST:event_btnLogInOutActionPerformed
 
   private void logInOut() {
-    if (username == null) {
+    if (userHandle == null) {
       // Log in
       JPanel panel = new JPanel();
-      JLabel label = new JLabel("Enter a password:");
-      JPasswordField pass = new JPasswordField(10);
-      panel.add(label);
-      panel.add(pass);
+      //JLabel label = new JLabel("Enter a password:");
+      JTextField tfUsername = new JTextField();
+      JPasswordField pfPassword = new JPasswordField(20);
+      //panel.add(label);
+      panel.add(tfUsername);
+      panel.add(pfPassword);
       String[] options = new String[]{"OK", "Cancel"};
       int option = JOptionPane.showOptionDialog(null, panel, "Log in",
               JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
               null, options, options[1]);
       if (option == 0) // pressing OK button
       {
-        char[] password = pass.getPassword();
-        System.out.println("Your password is: " + new String(password));
+        String newUsername = tfUsername.getText();
+        char[] newPassword = pfPassword.getPassword();
+        
       }
     } else {
       // Log out
       //TODO Dunno if the server needs to be informed
+      userHandle = null;
       username = null;
       password = null; //TODO Maybe clear out bytes or whatever
     }
@@ -135,7 +141,7 @@ public class ClientFrame extends javax.swing.JFrame {
   }
 
   private void updateLoginStatus() {
-    if (username == null) {
+    if (userHandle == null) {
       // Logged out
       btnLogInOut.setText("Log in");
       lUsername.setText("(Anonymous)");

@@ -40,6 +40,7 @@ public class ClientMain extends BaseMain {
     
     //TODO Should a User handle be derived from their public key??
     
-    
+    ClientFrame cf = new ClientFrame();
+    cf.setVisible(true);
   }
 }
