@@ -85,6 +85,8 @@ public class UserCreated extends UserEvent {
    * //TODO Would it be possible to permit the server to sign a single specific
    * message with the user's private key, without giving the server direct
    * access to the private key?
+   * 
+   * //TODO Don't give this out except in particular circumstances
    */
   public byte[] privateKeyEncrypted; //TODO Verify correct decryption?
 }

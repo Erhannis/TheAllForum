@@ -226,12 +226,12 @@ public class ServerMain extends BaseMain {
     uc.parents = new HashSet<Handle>();
     uc.privateKeyEncrypted = encryptKey(keyPair.getPrivate(), password);
     uc.publicKey = keyPair.getPublic();
-    uc.user = null;
-    uc.userTimestamp = 0;
-    uc.userSignature = null;
+    uc.user = uc.handle;
+    uc.userTimestamp = System.currentTimeMillis();
+    uc.userSignature = Signature.signUser(ctx, uc, keyPair.getPrivate());
     uc.server = ctx.keyFile.serverHandle;
-    uc.serverTimestamp = System.currentTimeMillis();
-    uc.serverSignature = sign(ctx, uc);
+    uc.serverTimestamp = uc.userTimestamp;
+    uc.serverSignature = Signature.signServer(ctx, uc, ctx.keyFile.serverPrivateKey);
 
     EntityManager em = ctx.factory.createEntityManager();
     em.getTransaction().begin();
@@ -253,10 +253,6 @@ public class ServerMain extends BaseMain {
 
       return ciphertext;
     }
-  }
-  
-  private static Signature sign(Context ctx, Event evt) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
-    return Signature.signServer(ctx, evt, ctx.keyFile.serverPrivateKey);
   }
   
   public static void asdf() {throw new RuntimeException();}

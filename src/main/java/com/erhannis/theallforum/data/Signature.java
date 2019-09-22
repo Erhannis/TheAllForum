@@ -252,7 +252,7 @@ public class Signature {
     return out.toByteArray();
   }
   
-  protected static boolean verify(Context ctx, Event event, byte[] signature, PublicKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {
+  protected static boolean verify(Context ctx, Event event, byte[] signature, PublicKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException, IllegalArgumentException, UnsupportedEncodingException {
     //TODO Need to make sure key algorithm matches
     java.security.Signature sig = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
     sig.initVerify(key);
@@ -261,15 +261,15 @@ public class Signature {
     return sig.verify(signature);
   }
 
-  public static boolean verifyUser(Context ctx, Event event, byte[] signature, PublicKey userKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+  public static boolean verifyUser(Context ctx, Event event, byte[] signature, PublicKey userKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, IllegalArgumentException, UnsupportedEncodingException {
     return verify(ctx, event, signature, userKey, true);
   }
   
-  public static boolean verifyServer(Context ctx, Event event, byte[] signature, PublicKey serverKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+  public static boolean verifyServer(Context ctx, Event event, byte[] signature, PublicKey serverKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, IllegalArgumentException, UnsupportedEncodingException {
     return verify(ctx, event, signature, serverKey, false);
   }
   
-  protected static byte[] sign(Context ctx, Event event, PrivateKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException {
+  protected static byte[] sign(Context ctx, Event event, PrivateKey key, boolean isUserSignature) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, SignatureException, IllegalArgumentException, UnsupportedEncodingException {
     //TODO Need to make sure key algorithm matches
     java.security.Signature sig = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
     sig.initSign(key);
@@ -280,13 +280,13 @@ public class Signature {
     return signatureBytes;
   }
 
-  public static Signature signUser(Context ctx, Event event, PrivateKey userKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+  public static Signature signUser(Context ctx, Event event, PrivateKey userKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, IllegalArgumentException, UnsupportedEncodingException {
     Signature result = new Signature();
     result.value = sign(ctx, event, userKey, true);
     return result;
   }
 
-  public static Signature signServer(Context ctx, Event event, PrivateKey serverKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException {
+  public static Signature signServer(Context ctx, Event event, PrivateKey serverKey) throws IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, IllegalArgumentException, UnsupportedEncodingException {
     Signature result = new Signature();
     result.value = sign(ctx, event, serverKey, false);
     return result;

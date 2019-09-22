@@ -59,9 +59,9 @@ public class BaseMain {
           uc.parents = new HashSet<Handle>();
           uc.privateKeyEncrypted = null;
           uc.publicKey = keyPair.getPublic();
-          uc.user = null;
-          uc.userTimestamp = 0;
-          uc.userSignature = null;
+          uc.user = uc.handle;
+          uc.userTimestamp = System.currentTimeMillis();
+          uc.userSignature = Signature.signUser(ctx, uc, keyPair.getPrivate());
           uc.server = uc.handle;
           uc.serverTimestamp = uc.userTimestamp;
           uc.serverSignature = Signature.signServer(ctx, uc, keyPair.getPrivate());
