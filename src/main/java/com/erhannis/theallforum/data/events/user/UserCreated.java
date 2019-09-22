@@ -13,6 +13,18 @@ import java.security.PublicKey;
 import javax.persistence.Entity;
 
 /**
+ * This is the creation event of a User.
+ * The Handle of this Event doubles as the Handle of the User itself, and must
+ * be derived from the Public Key of the User, because the User's Key
+ * effectively defines the User.  If it is done with a User's Private Key, it is
+ * done by the User.
+ * The Key IS the User.
+ * Don't lose your Private Key.
+ * 
+ * (...Granted, while this is all ideal and stuff, I suspect reality will occur,
+ * and we'll probably *try* to accommodate people who lose their keys, or a server
+ * will get hacked, and we'll have to do damage control, but...IDEALLY.  The project's
+ * just started, reality hasn't set in, yet.)
  *
  * @author erhannis
  */

@@ -7,7 +7,6 @@ package com.erhannis.theallforum.data;
 
 import com.erhannis.theallforum.Constants;
 import com.erhannis.theallforum.Context;
-import com.erhannis.theallforum.Main;
 import com.erhannis.theallforum.data.events.Event;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteArrayDataOutput;
@@ -16,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -92,7 +92,7 @@ public class Signature {
    * @throws IllegalArgumentException
    * @throws IllegalAccessException 
    */
-  protected static byte[] toBytes(Context ctx, Event event, boolean isUserSignature) throws IllegalArgumentException, IllegalAccessException {
+  protected static byte[] toBytes(Context ctx, Event event, boolean isUserSignature) throws IllegalArgumentException, IllegalAccessException, UnsupportedEncodingException {
     //TODO Might be able to use SignedObject instead of all this?  Don't think so, though
     LinkedList<Class<?>> clazzes = new LinkedList<>();
     Class<?> curClazz = event.getClass();
@@ -170,7 +170,17 @@ public class Signature {
               byte[] val0 = ToBytes.toBytesUTF(handle.value);
               out.writeInt(val0.length);
               out.write(val0);
-              byte[] val1 = getServerSignature(ctx, handle.value).value;
+              // By including the signature of any referenced objects, we ensure
+              // that if those objects are changed (illegal), that this object's
+              // signature no longer checks out.
+              // However, some objects refer to themselves.  It is infeasible to
+              // calculate a hash that includes itself, so we must skip such signatures.
+              byte[] val1;
+              if (event.handle.equals(handle)) {
+                val1 = "self-reference".getBytes("UTF-8");
+              } else {
+                val1 = getServerSignature(ctx, handle.value).value;
+              }
               if (val1 == null) {
                 failure = true;
                 //TODO Error message?
