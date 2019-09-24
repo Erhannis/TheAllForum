@@ -8,6 +8,8 @@ package com.erhannis.theallforum;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.Signature;
 import com.erhannis.theallforum.data.events.user.UserCreated;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -26,12 +28,20 @@ import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.persistence.EntityManager;
+import javax.persistence.Persistence;
 
 /**
  *
  * @author erhannis
  */
 public class BaseMain {
+  protected static Context getBaseContext() {
+    Context ctx = new Context();
+    ctx.om = new ObjectMapper().configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    ctx.factory = Persistence.createEntityManagerFactory("default");
+    return ctx;
+  }
+  
   protected static KeyFile getKeyFile(Context ctx, String path) throws IOException, IllegalAccessException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, ClassNotFoundException {
     File idFile = new File(path);
     if (idFile.exists()) {

@@ -9,6 +9,11 @@ import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.Signature;
 import com.erhannis.theallforum.data.events.Event;
+import com.erhannis.theallforum.data.events.tag.TagEvent;
+import com.erhannis.theallforum.data.events.user.UserEvent;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import java.security.PrivateKey;
@@ -28,5 +33,13 @@ import javax.persistence.InheritanceType;
  */
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = PostCreated.class, name = "PostCreated"),
+    @JsonSubTypes.Type(value = PostTagsAdded.class, name = "PostTagsAdded"),
+    @JsonSubTypes.Type(value = PostTagsRemoved.class, name = "PostTagsRemoved"),
+    @JsonSubTypes.Type(value = PostTextUpdated.class, name = "PostTextUpdated")
+})
 public abstract class PostEvent extends Event {
 }

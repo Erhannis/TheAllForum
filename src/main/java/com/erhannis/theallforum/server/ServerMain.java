@@ -8,7 +8,6 @@ package com.erhannis.theallforum.server;
 import com.erhannis.theallforum.BaseMain;
 import com.erhannis.theallforum.Constants;
 import com.erhannis.theallforum.Context;
-import com.erhannis.theallforum.Context.GsonWrapper;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.Signature;
 import com.erhannis.theallforum.data.events.Event;
@@ -20,27 +19,14 @@ import com.erhannis.theallforum.data.events.post.PostTextUpdated;
 import com.erhannis.theallforum.data.events.tag.TagEvent;
 import com.erhannis.theallforum.data.events.user.UserCreated;
 import com.erhannis.theallforum.data.events.user.UserEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.crypto.tink.Aead;
 import com.google.crypto.tink.KeysetHandle;
 import com.google.crypto.tink.aead.AeadConfig;
 import com.google.crypto.tink.aead.AeadKeyTemplates;
 import com.google.crypto.tink.config.TinkConfig;
 import com.google.crypto.tink.subtle.AesGcmJce;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
-import com.google.gson.typeadapters.RuntimePolytypeAdapterFactory;
-import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -62,6 +48,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.SignatureException;
 import java.security.spec.KeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
@@ -97,31 +84,7 @@ public class ServerMain extends BaseMain {
     LOGGER.info("Server startup");
     LOGGER.info("Commit hash: " + getHash());
 
-    new TypeAdapterFactory() {
-      @Override
-      public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
-        return new TypeAdapter<T>() {
-          @Override
-          public void write(JsonWriter out, T value) throws IOException {
-            gson.toJson(value, value.getClass(), out);
-          }
-
-          @Override
-          public T read(JsonReader in) throws IOException {
-            
-          }
-        }
-      }
-    }
-    Context ctx = new Context();
-    //RuntimeTypeAdapterFactory<Event> rtaf = RuntimeTypeAdapterFactory.of(Event.class);
-    RuntimePolytypeAdapterFactory rtaf = RuntimePolytypeAdapterFactory.of(Event.class);
-    ctx.gson = new GsonWrapper(new Gson().newBuilder()
-            .registerTypeAdapterFactory(rtaf)
-            //.registerTypeHierarchyAdapter(Event.class, )
-            .setLenient()
-            .create());
-    ctx.factory = Persistence.createEntityManagerFactory("default");
+    Context ctx = getBaseContext();
     ctx.keyFile = getKeyFile(ctx, "./private.key");
 
     AeadConfig.register();
@@ -140,7 +103,7 @@ public class ServerMain extends BaseMain {
   public static void startApi(Context ctx) {
     String prefix = "/api";
     post(prefix + "/event", (req, res) -> {
-      Event event = ctx.gson.fromJson(req.body(), Event.class);
+      Event event = ctx.om.readValue(req.body(), Event.class);
       if (event instanceof PostEvent) {
         if (event instanceof PostCreated) {
           PostCreated pc = (PostCreated) event;
@@ -198,8 +161,7 @@ public class ServerMain extends BaseMain {
       EntityManager em = ctx.factory.createEntityManager();
       List<Event> es = em.createQuery("select e from Event e", Event.class).getResultList();
       em.close();
-      //TODO Trying to get polymorphism to work
-      String result = ctx.gson.toJson(es);
+      String result = ctx.om.writeValueAsString(new ArrayList<Event>(es){});
       res.type("application/json");
       return result;
     });
@@ -213,7 +175,7 @@ public class ServerMain extends BaseMain {
         res.status(400);
         return "Error; username or password missing";
       }
-      return ctx.gson.toJson(createUserTest(ctx, username, password));
+      return ctx.om.writeValueAsString(createUserTest(ctx, username, password));
     });
     Spark.delete(prefix + "/event/:id", (req, res) -> {
       //TODO Authentication
@@ -248,11 +210,11 @@ public class ServerMain extends BaseMain {
               .getResultList();
       for (UserCreated user : users) {
         if (doesDecryptKey(user.privateKeyEncrypted, password)) {
-          return ctx.gson.toJson(user.handle); //TODO Return Handle, or (Handle).value, or UserEvent?
+          return ctx.om.writeValueAsString(user.handle); //TODO Return Handle, or (Handle).value, or UserEvent?
         }
       }
       res.status(401);
-      return ctx.gson.toJson("Invalid login");
+      return ctx.om.writeValueAsString("Invalid login");
     });
   }
 

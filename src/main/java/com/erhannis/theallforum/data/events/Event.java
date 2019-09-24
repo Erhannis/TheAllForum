@@ -8,6 +8,12 @@ package com.erhannis.theallforum.data.events;
 import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.Signature;
+import com.erhannis.theallforum.data.events.post.PostEvent;
+import com.erhannis.theallforum.data.events.tag.TagEvent;
+import com.erhannis.theallforum.data.events.user.UserEvent;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
@@ -39,6 +45,13 @@ import javax.persistence.OneToMany;
  */
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY)
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = PostEvent.class, name = "PostEvent"),
+    @JsonSubTypes.Type(value = TagEvent.class, name = "TagEvent"),
+    @JsonSubTypes.Type(value = UserEvent.class, name = "UserEvent")
+})
 public abstract class Event {
   /*
     this.handle;

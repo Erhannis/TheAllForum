@@ -7,7 +7,7 @@ package com.erhannis.theallforum.client;
 
 import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.events.Event;
-import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -58,7 +58,7 @@ public class RestClient {
         System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
       }
 
-      return ctx.gson.fromJson(response.body().string(), new TypeToken<List<Event>>(){}.getType());
+      return ctx.om.readValue(response.body().string(), new TypeReference<List<Event>>(){});
     }
   }
 }
