@@ -12,6 +12,11 @@
   </properties>
   <dependencies>
     <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>4.2.0</version>
+    </dependency>
+    <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
         <version>1.13</version>

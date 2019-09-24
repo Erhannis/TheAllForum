@@ -3,8 +3,12 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.erhannis.theallforum;
+package com.erhannis.theallforum.server;
 
+import com.erhannis.theallforum.BaseMain;
+import com.erhannis.theallforum.Constants;
+import com.erhannis.theallforum.Context;
+import com.erhannis.theallforum.Context.GsonWrapper;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.Signature;
 import com.erhannis.theallforum.data.events.Event;
@@ -65,6 +69,7 @@ import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.AEADBadTagException;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -92,9 +97,30 @@ public class ServerMain extends BaseMain {
     LOGGER.info("Server startup");
     LOGGER.info("Commit hash: " + getHash());
 
+    new TypeAdapterFactory() {
+      @Override
+      public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
+        return new TypeAdapter<T>() {
+          @Override
+          public void write(JsonWriter out, T value) throws IOException {
+            gson.toJson(value, value.getClass(), out);
+          }
+
+          @Override
+          public T read(JsonReader in) throws IOException {
+            
+          }
+        }
+      }
+    }
     Context ctx = new Context();
+    //RuntimeTypeAdapterFactory<Event> rtaf = RuntimeTypeAdapterFactory.of(Event.class);
     RuntimePolytypeAdapterFactory rtaf = RuntimePolytypeAdapterFactory.of(Event.class);
-    ctx.gson = new Gson().newBuilder().registerTypeAdapterFactory(rtaf).create();
+    ctx.gson = new GsonWrapper(new Gson().newBuilder()
+            .registerTypeAdapterFactory(rtaf)
+            //.registerTypeHierarchyAdapter(Event.class, )
+            .setLenient()
+            .create());
     ctx.factory = Persistence.createEntityManagerFactory("default");
     ctx.keyFile = getKeyFile(ctx, "./private.key");
 
@@ -207,6 +233,27 @@ public class ServerMain extends BaseMain {
       res.type("application/json");
       return "" + deleted; //TODO Should return deleted event?
     });
+    Spark.get(prefix + "/login/:username/:password", (req, res) -> {
+      String username = req.params("username");
+      String password = req.params("password");
+      if (username == null || password == null) {
+        res.status(400);
+        return "Error; username or password missing";
+      }
+      EntityManager em = ctx.factory.createEntityManager();
+      //TODO Deal with username changes, etc.
+      //TODO In fact, deal with the general concept of searching the most up-to-date version of stuff
+      List<UserCreated> users = em.createQuery("SELECT uc from UserCreated uc where uc.username = :username", UserCreated.class)
+              .setParameter("username", username)
+              .getResultList();
+      for (UserCreated user : users) {
+        if (doesDecryptKey(user.privateKeyEncrypted, password)) {
+          return ctx.gson.toJson(user.handle); //TODO Return Handle, or (Handle).value, or UserEvent?
+        }
+      }
+      res.status(401);
+      return ctx.gson.toJson("Invalid login");
+    });
   }
 
   private static UserCreated createUserTest(Context ctx, String username, String password) throws NoSuchAlgorithmException, IllegalAccessException, InvalidKeyException, SignatureException, IOException, GeneralSecurityException {
@@ -253,6 +300,19 @@ public class ServerMain extends BaseMain {
 
       return ciphertext;
     }
+  }
+
+  private static boolean doesDecryptKey(byte[] encryptedKey, String password) throws IOException, GeneralSecurityException {
+    //TODO AesGcmJce is unsupported, and pure SHA256 is prolly a poor key-derivation function
+    AesGcmJce agj = new AesGcmJce(DigestUtils.sha256(password));
+    //TODO Is there a better way that doesn't involve actually decrypting it?  Would that even buy us anything?
+    try {
+      agj.decrypt(encryptedKey, null);
+    } catch (AEADBadTagException e) {
+      return false;
+    }
+
+    return true;
   }
   
   public static void asdf() {throw new RuntimeException();}

@@ -3,11 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.erhannis.theallforum;
+package com.erhannis.theallforum.client;
 
+import com.erhannis.theallforum.BaseMain;
+import com.erhannis.theallforum.Context;
+import com.erhannis.theallforum.Context.GsonWrapper;
 import com.erhannis.theallforum.data.events.Event;
 import com.google.gson.Gson;
 import com.google.gson.typeadapters.RuntimePolytypeAdapterFactory;
+import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import java.io.IOException;
 import java.net.URL;
 import java.security.InvalidKeyException;
@@ -32,15 +36,19 @@ public class ClientMain extends BaseMain {
     LOGGER.info("Commit hash: " + getHash());
     
     Context ctx = new Context();
-    RuntimePolytypeAdapterFactory rtaf = RuntimePolytypeAdapterFactory.of(Event.class);
-    ctx.gson = new Gson().newBuilder().registerTypeAdapterFactory(rtaf).create();
+    RuntimeTypeAdapterFactory<Event> rtaf = RuntimeTypeAdapterFactory.of(Event.class);
+    //RuntimePolytypeAdapterFactory rtaf = RuntimePolytypeAdapterFactory.of(Event.class);
+    ctx.gson = new GsonWrapper(new Gson().newBuilder()
+            .registerTypeAdapterFactory(rtaf)
+            .setLenient()
+            .create());
     ctx.factory = Persistence.createEntityManagerFactory("default");
     //TODO Not sure what to do about local user, and/or their key
     //ctx.keyFile = getKeyFile(ctx, "./private.key");
     
     //TODO Should a User handle be derived from their public key??
     
-    ClientFrame cf = new ClientFrame();
+    ClientFrame cf = new ClientFrame(ctx);
     cf.setVisible(true);
   }
 }

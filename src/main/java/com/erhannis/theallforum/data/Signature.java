@@ -175,6 +175,7 @@ public class Signature {
               // signature no longer checks out.
               // However, some objects refer to themselves.  It is infeasible to
               // calculate a hash that includes itself, so we must skip such signatures.
+              //TODO ...A rogue server can't forge this, right?
               byte[] val1;
               if (event.handle.equals(handle)) {
                 val1 = "self-reference".getBytes("UTF-8");
