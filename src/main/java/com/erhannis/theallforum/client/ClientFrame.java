@@ -18,6 +18,7 @@ import java.security.SignatureException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.GroupLayout;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -172,21 +173,34 @@ public class ClientFrame extends javax.swing.JFrame {
     if (userHandle == null) {
       // Log in
       JPanel panel = new JPanel();
-      //JLabel label = new JLabel("Enter a password:");
       JTextField tfUsername = new JTextField();
       JPasswordField pfPassword = new JPasswordField(20);
-      //panel.add(label);
+      panel.setLayout(new java.awt.GridLayout(0, 2));
+      panel.add(new JLabel("Username"));
       panel.add(tfUsername);
+      panel.add(new JLabel("Password"));
       panel.add(pfPassword);
       String[] options = new String[]{"OK", "Cancel"};
-      int option = JOptionPane.showOptionDialog(null, panel, "Log in",
+      int option = JOptionPane.showOptionDialog(null, panel, "Log in asdf",
               JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
-              null, options, options[1]);
+              null, options, options[0]);
       if (option == 0) // pressing OK button
       {
         String newUsername = tfUsername.getText();
-        char[] newPassword = pfPassword.getPassword();
-        
+        String newPassword = new String(pfPassword.getPassword());
+        try {
+          Handle newUserHandle = restClient.login(newUsername, newPassword);
+          if (newUserHandle != null) {
+            username = newUsername;
+            userHandle = newUserHandle;
+            password = newPassword;
+          } else {
+            JOptionPane.showMessageDialog(null, "Invalid login");
+          }
+        } catch (IOException ex) {
+          Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+          JOptionPane.showMessageDialog(null, "Error logging in");
+        }
       }
     } else {
       // Log out

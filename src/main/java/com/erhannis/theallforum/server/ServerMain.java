@@ -170,15 +170,6 @@ public class ServerMain extends BaseMain {
     get(prefix + "/event/:id", (req, res) -> {
       return "";
     });
-    get(prefix + "/test_create_user/:username/:password", (req, res) -> {
-      String username = req.params("username");
-      String password = req.params("password");
-      if (username == null || password == null) {
-        res.status(400);
-        return "Error; username or password missing";
-      }
-      return ctx.om.writeValueAsString(createUserTest(ctx, username, password));
-    });
     Spark.delete(prefix + "/event/:id", (req, res) -> {
       //TODO Authentication
       //TODO Also, deletion is bad in this system
@@ -198,9 +189,9 @@ public class ServerMain extends BaseMain {
       return "" + deleted; //TODO Should return deleted event?
     });
     //TODO Should probably hash the password before sending it.  Maybe one of those nifty challenge response things?
-    Spark.get(prefix + "/login/:username/:password", (req, res) -> {
-      String username = req.params("username");
-      String password = req.params("password");
+    Spark.post(prefix + "/login", (req, res) -> {
+      String username = req.raw().getParameter("username");
+      String password = req.raw().getParameter("password");
       if (username == null || password == null) {
         res.status(400);
         return "Error; username or password missing";
@@ -284,6 +275,15 @@ public class ServerMain extends BaseMain {
       sigV.initVerify(rehydratedPublicKey);
       sigV.update(data);
       return "Sig checks out: " + sigV.verify(signature);
+    });
+    get(prefix + "/create_user/:username/:password", (req, res) -> {
+      String username = req.params("username");
+      String password = req.params("password");
+      if (username == null || password == null) {
+        res.status(400);
+        return "Error; username or password missing";
+      }
+      return ctx.om.writeValueAsString(createUserTest(ctx, username, password));
     });
   }
 
