@@ -6,6 +6,11 @@
 package com.erhannis.theallforum.data.events.user;
 
 import com.erhannis.theallforum.data.Signature;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.nio.ByteBuffer;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
@@ -64,7 +69,12 @@ public class UserCreated extends UserEvent {
    *
    * If this event is sent to the server with publicKey not null, it is supposed
    * that the client is managing the user's public key. (//TODO Allowed?)
+   * 
+   * //TODO Is the use of JsonTypeInfo in this way a security hole?
+   * 
    */
+  @JsonSerialize(using = PublicKeySerialization.Serializer.class)
+  @JsonDeserialize(using = PublicKeySerialization.Deserializer.class, as=PublicKey.class)
   public PublicKey publicKey;
 
   /**

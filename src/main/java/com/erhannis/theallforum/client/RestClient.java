@@ -27,7 +27,7 @@ import okhttp3.Response;
  */
 public class RestClient {
   private final Context ctx;
-  private final HttpUrl.Builder api;
+  private final HttpUrl api;
   private final OkHttpClient client;
   
   public RestClient(Context ctx) {
@@ -37,12 +37,13 @@ public class RestClient {
             .scheme("http")
             .host("localhost")
             .port(4567)
-            .addPathSegment("api");
+            .addPathSegment("api")
+            .build();
   }
 
   public List<Event> events() throws IOException {
     Request request = new Request.Builder()
-            .url(api.addPathSegment("event").build())
+            .url(api.newBuilder().addPathSegment("event").build())
             .build();
 
     try (Response response = client.newCall(request).execute()) {
@@ -58,7 +59,9 @@ public class RestClient {
         System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
       }
 
-      return ctx.om.readValue(response.body().string(), new TypeReference<List<Event>>(){});
+      String str = response.body().string();
+      //System.out.println("/events received: " + str);
+      return ctx.om.readValue(str, new TypeReference<List<Event>>(){});
     }
   }
 }

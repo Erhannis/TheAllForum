@@ -7,7 +7,15 @@ package com.erhannis.theallforum.client;
 
 import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.Handle;
+import com.erhannis.theallforum.data.Signature;
+import com.erhannis.theallforum.data.events.Event;
+import com.erhannis.theallforum.data.events.user.UserCreated;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JLabel;
@@ -133,7 +141,28 @@ public class ClientFrame extends javax.swing.JFrame {
 
   private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
     try {
-      System.out.println(restClient.events());
+      List<Event> events = restClient.events();
+      for (Event e : events) {
+        if (e instanceof UserCreated) {
+          boolean success = false;
+          try {
+            success = Signature.verifyUser(ctx, e, ((UserCreated) e).userSignature.value, ((UserCreated) e).publicKey);
+          } catch (IllegalAccessException ex) {
+            Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+          } catch (InvalidKeyException ex) {
+            Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+          } catch (SignatureException ex) {
+            Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+          } catch (NoSuchAlgorithmException ex) {
+            Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+          } catch (IllegalArgumentException ex) {
+            Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+          } catch (UnsupportedEncodingException ex) {
+            Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+          }
+          System.out.println("Signature correct for: " + ((UserCreated) e).username);
+        }
+      }
     } catch (IOException ex) {
       Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
     }
