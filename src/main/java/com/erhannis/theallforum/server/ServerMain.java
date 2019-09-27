@@ -78,7 +78,7 @@ import static spark.Spark.*;
  */
 public class ServerMain extends BaseMain {
   private static Logger LOGGER = Logger.getLogger(ServerMain.class.getName());
-  
+
   /**
    * @param args the command line arguments
    */
@@ -90,7 +90,7 @@ public class ServerMain extends BaseMain {
     ctx.keyFile = getKeyFile(ctx, "./private.key");
 
     AeadConfig.register();
-    
+
     staticFileLocation("/public");
     startApi(ctx);
     get("*", (req, res) -> {
@@ -104,58 +104,50 @@ public class ServerMain extends BaseMain {
 
   public static void startApi(Context ctx) {
     String prefix = "/api";
+    //TODO Figure out multiple ways of authentication
     post(prefix + "/event", (req, res) -> {
-      Event event = ctx.om.readValue(req.body(), Event.class);
-      if (event instanceof PostEvent) {
-        if (event instanceof PostCreated) {
-          PostCreated pc = (PostCreated) event;
-          /*
-          Ok, so.
-          
-          handle
-          parents[]
-          previous[]
-          tags[]
-          text
-          user
-          signature
-          timestamp
-          
-          All but the last two can be set by the client.
-          The signature, the client may not be able to unless they've taken
-          ownership of their private key, in which case they MUST provide
-          the signature and the server will authenticate it.
-          The timestamp...dang.  It's tricky.  We want the timestamps to be
-          "accurate".  However, we also want the client to be allowed to sign
-          their own messages.  We could:
-          1. Not include the timestamp in the signature.  This leadeth into shenanigans.
-          2. Allow the client to set and sign their own timestamp.  This leadeth into shenanigans.
-          3. Allow the client to send a partial msg to the server to be timestamped, then the user signs it and sends it back.
-          This allows the user to wait before posting a message into the past (shenanigans), OR prevents long lag times (e.g. interplanetary internet).
-          4. What if a user timestamped and signed a message, then sent it to the server to be timestamped and signed by the server, too?
-          It's more complicated, but I kinda like it.  It furthermore allows different servers' influences to be marked.  I don;t know what THAT gains us exactly, but I kinda like it.
-          
-           */
-          asdf();
-        } else if (event instanceof PostTextUpdated) {
-          asdf();
-        } else if (event instanceof PostTagsAdded) {
-          asdf();
-        } else if (event instanceof PostTagsRemoved) {
-          asdf();
-        } else {
-          res.status(400);
-          return "unknown event type";
+      Event event = ctx.om.readValue(req.raw().getParameter("event"), Event.class);
+      EntityManager em = ctx.factory.createEntityManager();
+      try {
+        if (event.userSignature == null) {
+          // User has not signed the event, so we assume we're storing their key
+          //TODO Handle exception?
+          Handle userhandle = ctx.om.readValue(req.raw().getParameter("userhandle"), Handle.class);
+          String password = req.raw().getParameter("password");
+          if (userhandle == null || password == null) {
+            res.status(400);
+            return "Error: event not signed, and username or password missing";
+          }
+          //TODO Deal with username changes, etc.
+          //TODO In fact, deal with the general concept of searching the most up-to-date version of stuff
+          //TODO Handle exception?
+          UserCreated user = em.createQuery("SELECT uc from UserCreated uc where uc.handle = :userhandle", UserCreated.class)
+                  .setParameter("userhandle", userhandle)
+                  .getSingleResult();
+
+          try {
+            PrivateKey key = decryptKey(user.privateKeyEncrypted, password);
+            event.userSignature = Signature.signUser(ctx, event, key);
+          } catch (Exception e) {
+            res.status(401);
+            return ctx.om.writeValueAsString("Invalid login");
+          }
         }
-      } else if (event instanceof TagEvent) {
-        asdf();
-      } else if (event instanceof UserEvent) {
-        asdf();
-      } else {
-        res.status(400);
-        return "unknown event type";
+        event.server = ctx.keyFile.serverHandle;
+        event.serverTimestamp = System.currentTimeMillis();
+        event.serverSignature = Signature.signServer(ctx, event, ctx.keyFile.serverPrivateKey);
+        //TODO Verify the event, depending on what it is, etc.
+        //TODO Verify the user signature
+        //TODO Ensure no handle collisions
+
+        em.getTransaction().begin();
+        em.persist(event);
+        em.getTransaction().commit();
+
+        return ctx.om.writeValueAsString(event);
+      } finally {
+        em.close();
       }
-      return "";
     });
     get(prefix + "/event", (req, res) -> {
       //TODO JDBC
@@ -163,7 +155,8 @@ public class ServerMain extends BaseMain {
       EntityManager em = ctx.factory.createEntityManager();
       List<Event> es = em.createQuery("select e from Event e", Event.class).getResultList();
       em.close();
-      String result = ctx.om.writeValueAsString(new ArrayList<Event>(es){});
+      String result = ctx.om.writeValueAsString(new ArrayList<Event>(es) {
+      });
       res.type("application/json");
       return result;
     });
@@ -199,7 +192,7 @@ public class ServerMain extends BaseMain {
       EntityManager em = ctx.factory.createEntityManager();
       //TODO Deal with username changes, etc.
       //TODO In fact, deal with the general concept of searching the most up-to-date version of stuff
-      List<UserCreated> users = em.createQuery("SELECT uc from UserCreated uc where uc.username = :username", UserCreated.class)
+      List<UserCreated> users = em.createQuery("SELECT uc from UserCreated uc where LOWER(uc.username) = LOWER(:username)", UserCreated.class)
               .setParameter("username", username)
               .getResultList();
       em.close();
@@ -211,10 +204,10 @@ public class ServerMain extends BaseMain {
       res.status(401);
       return ctx.om.writeValueAsString("Invalid login");
     });
-    
+
     setUpTestEndpoints(ctx);
   }
-  
+
   private static void setUpTestEndpoints(Context ctx) {
     String prefix = "/api/test";
     get(prefix + "/gson", (req, res) -> {
@@ -242,15 +235,15 @@ public class ServerMain extends BaseMain {
       for (UserCreated user : users) {
         if (doesDecryptKey(user.privateKeyEncrypted, password)) {
           byte[] data = "This is a test string".getBytes();
-    java.security.Signature sigS = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
-    sigS.initSign(decryptKey(user.privateKeyEncrypted, password));
-    sigS.update(data);
-    byte[] signature = sigS.sign();
-    
-    java.security.Signature sigV = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
-    sigV.initVerify(user.publicKey);
-    sigV.update(data);
-    return "Sig checks out: " + sigV.verify(signature);
+          java.security.Signature sigS = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
+          sigS.initSign(decryptKey(user.privateKeyEncrypted, password));
+          sigS.update(data);
+          byte[] signature = sigS.sign();
+
+          java.security.Signature sigV = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
+          sigV.initVerify(user.publicKey);
+          sigV.update(data);
+          return "Sig checks out: " + sigV.verify(signature);
         }
       }
       res.status(401);
@@ -262,7 +255,7 @@ public class ServerMain extends BaseMain {
       KeyPair keyPair = kpg.genKeyPair();
 
       byte[] data = "This is a test string".getBytes();
-      
+
       java.security.Signature sigS = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
       sigS.initSign(keyPair.getPrivate());
       sigS.update(data);
@@ -270,7 +263,7 @@ public class ServerMain extends BaseMain {
 
       String dehydratedPublicKey = new Gson().toJson(keyPair.getPublic());
       PublicKey rehydratedPublicKey = new Gson().fromJson(dehydratedPublicKey, sun.security.rsa.RSAPublicKeyImpl.class);
-      
+
       java.security.Signature sigV = java.security.Signature.getInstance(Constants.SIGNATURE_ALGORITHM);
       sigV.initVerify(rehydratedPublicKey);
       sigV.update(data);
@@ -292,7 +285,7 @@ public class ServerMain extends BaseMain {
     KeyPairGenerator kpg = KeyPairGenerator.getInstance(Constants.KEY_ALGORITHM);
     kpg.initialize(Constants.KEY_BITS);
     KeyPair keyPair = kpg.genKeyPair();
-    
+
     UserCreated uc = new UserCreated();
     uc.handle = Handle.gen(keyPair.getPublic());
     //TODO Check username availability
@@ -316,10 +309,10 @@ public class ServerMain extends BaseMain {
     em.persist(uc);
     em.getTransaction().commit();
     em.close();
-    
+
     return uc;
   }
-  
+
   private static byte[] encryptKey(PrivateKey key, String password) throws IOException, GeneralSecurityException {
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream(); ObjectOutputStream oos = new ObjectOutputStream(baos)) {
       oos.writeObject(key);
@@ -341,12 +334,12 @@ public class ServerMain extends BaseMain {
     Object pk = ois.readObject();
     ois.close();
     if (pk instanceof PrivateKey) {
-      return (PrivateKey)pk;
+      return (PrivateKey) pk;
     } else {
       throw new GeneralSecurityException("Serialized object was not a PrivateKey");
     }
   }
-  
+
   private static boolean doesDecryptKey(byte[] encryptedKey, String password) throws IOException, GeneralSecurityException {
     //TODO AesGcmJce is unsupported, and pure SHA256 is prolly a poor key-derivation function
     AesGcmJce agj = new AesGcmJce(DigestUtils.sha256(password));
@@ -360,5 +353,7 @@ public class ServerMain extends BaseMain {
     return true;
   }
 
-  public static void asdf() {throw new RuntimeException();}
+  public static void asdf() {
+    throw new RuntimeException();
+  }
 }

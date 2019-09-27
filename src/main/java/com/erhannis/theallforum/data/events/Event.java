@@ -69,10 +69,20 @@ public abstract class Event {
     @AttributeOverride(name = "value", column = @Column(name = "eventHandle")),})
   public Handle handle;
 
+  //TODO Uh...what IS this, actually?
   @ElementCollection
   public Set<Handle> parents; //TODO Is this a good idea, actually?  This could be...confusing.  Particularly the multiples.
 
+  /**
+   * The timestamp at which the user is 
+   */
   public long userTimestamp;
+  
+  /**
+   * The timestamp at which the server is signing the event.
+   * 
+   * Set by the server.
+   */
   public long serverTimestamp;
 
   /**
@@ -85,6 +95,7 @@ public abstract class Event {
 
   /**
    * The server processing the event.
+   * Set by the server.
    *
    * Note that a "server" is a user account.
    */
@@ -109,6 +120,8 @@ public abstract class Event {
    * the signatures of this event's `previous`, the signatures of every other
    * linked event (such as `parents`), and every field of `this` EXCEPT for
    * `serverSignature` (including, notably, serverTimestamp and userSignature).
+   * 
+   * Set by the server.
    *
    * Note that a "server" is a user account.
    */

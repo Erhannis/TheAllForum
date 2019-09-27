@@ -9,18 +9,21 @@ import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.Signature;
 import com.erhannis.theallforum.data.events.Event;
+import com.erhannis.theallforum.data.events.post.PostCreated;
 import com.erhannis.theallforum.data.events.user.UserCreated;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.GroupLayout;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import static javax.swing.JOptionPane.CLOSED_OPTION;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
@@ -59,7 +62,13 @@ public class ClientFrame extends javax.swing.JFrame {
     btnLogInOut = new javax.swing.JButton();
     lUsername = new javax.swing.JLabel();
     jButton1 = new javax.swing.JButton();
+    jTabbedPane1 = new javax.swing.JTabbedPane();
+    jPanel3 = new javax.swing.JPanel();
+    btnCreatePost = new javax.swing.JButton();
+    jScrollPane1 = new javax.swing.JScrollPane();
+    taCreatePostText = new javax.swing.JTextArea();
     jPanel2 = new javax.swing.JPanel();
+    jPanel4 = new javax.swing.JPanel();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -104,29 +113,80 @@ public class ClientFrame extends javax.swing.JFrame {
           .addComponent(lUsername))
         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
         .addComponent(jButton1)
-        .addContainerGap(454, Short.MAX_VALUE))
+        .addContainerGap(504, Short.MAX_VALUE))
     );
 
     jSplitPane1.setLeftComponent(jPanel1);
+
+    btnCreatePost.setText("Post");
+    btnCreatePost.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        btnCreatePostActionPerformed(evt);
+      }
+    });
+
+    taCreatePostText.setColumns(20);
+    taCreatePostText.setRows(5);
+    jScrollPane1.setViewportView(taCreatePostText);
+
+    javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+    jPanel3.setLayout(jPanel3Layout);
+    jPanel3Layout.setHorizontalGroup(
+      jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+      .addGroup(jPanel3Layout.createSequentialGroup()
+        .addContainerGap()
+        .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+          .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 548, Short.MAX_VALUE)
+          .addGroup(jPanel3Layout.createSequentialGroup()
+            .addComponent(btnCreatePost)
+            .addGap(0, 0, Short.MAX_VALUE)))
+        .addContainerGap())
+    );
+    jPanel3Layout.setVerticalGroup(
+      jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+      .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel3Layout.createSequentialGroup()
+        .addContainerGap()
+        .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 420, javax.swing.GroupLayout.PREFERRED_SIZE)
+        .addGap(18, 18, 18)
+        .addComponent(btnCreatePost)
+        .addContainerGap())
+    );
+
+    jTabbedPane1.addTab("CreatePost", jPanel3);
 
     javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
     jPanel2.setLayout(jPanel2Layout);
     jPanel2Layout.setHorizontalGroup(
       jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-      .addGap(0, 520, Short.MAX_VALUE)
+      .addGap(0, 572, Short.MAX_VALUE)
     );
     jPanel2Layout.setVerticalGroup(
       jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-      .addGap(0, 522, Short.MAX_VALUE)
+      .addGap(0, 537, Short.MAX_VALUE)
     );
 
-    jSplitPane1.setRightComponent(jPanel2);
+    jTabbedPane1.addTab("tab2", jPanel2);
+
+    javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+    jPanel4.setLayout(jPanel4Layout);
+    jPanel4Layout.setHorizontalGroup(
+      jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+      .addGap(0, 572, Short.MAX_VALUE)
+    );
+    jPanel4Layout.setVerticalGroup(
+      jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+      .addGap(0, 537, Short.MAX_VALUE)
+    );
+
+    jTabbedPane1.addTab("tab3", jPanel4);
+
+    jSplitPane1.setRightComponent(jTabbedPane1);
 
     javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
     getContentPane().setLayout(layout);
     layout.setHorizontalGroup(
       layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-      .addComponent(jSplitPane1)
+      .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 751, Short.MAX_VALUE)
     );
     layout.setVerticalGroup(
       layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -169,6 +229,10 @@ public class ClientFrame extends javax.swing.JFrame {
     }
   }//GEN-LAST:event_jButton1ActionPerformed
 
+  private void btnCreatePostActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCreatePostActionPerformed
+    createPost();
+  }//GEN-LAST:event_btnCreatePostActionPerformed
+
   private void logInOut() {
     if (userHandle == null) {
       // Log in
@@ -180,10 +244,44 @@ public class ClientFrame extends javax.swing.JFrame {
       panel.add(tfUsername);
       panel.add(new JLabel("Password"));
       panel.add(pfPassword);
-      String[] options = new String[]{"OK", "Cancel"};
-      int option = JOptionPane.showOptionDialog(null, panel, "Log in asdf",
-              JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
-              null, options, options[0]);
+//      String[] options = new String[]{"OK", "Cancel"};
+//      tfUsername.requestFocus();
+//      int option = JOptionPane.showOptionDialog(null, panel, "Log in",
+//              JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE,
+//              null, options, options[0]);
+      JOptionPane pane = new JOptionPane(panel, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION) {
+        @Override
+        public void selectInitialValue() {
+          tfUsername.requestFocusInWindow();
+        }
+      };
+      pane.createDialog(null, "Log in").setVisible(true);
+      String[] options = null;
+      int option;
+      result_block: { // Copied from JOptionPane.showOptionDialog
+        Object selectedValue = pane.getValue();
+        if (selectedValue == null) {
+          option = CLOSED_OPTION;
+          break result_block;
+        }
+        if (options == null) {
+          if (selectedValue instanceof Integer) {
+            option = ((Integer) selectedValue).intValue();
+            break result_block;
+          }
+          option = CLOSED_OPTION;
+          break result_block;
+        }
+        for (int counter = 0, maxCounter = options.length;
+                counter < maxCounter; counter++) {
+          if (options[counter].equals(selectedValue)) {
+            option = counter;
+            break result_block;
+          }
+        }
+        option = CLOSED_OPTION;
+        break result_block;
+      }
       if (option == 0) // pressing OK button
       {
         String newUsername = tfUsername.getText();
@@ -224,12 +322,47 @@ public class ClientFrame extends javax.swing.JFrame {
     }
   }
 
+  private void createPost() {
+    if (userHandle == null) {
+      JOptionPane.showMessageDialog(null, "Please log in first.");
+      return;
+    }
+    PostCreated post = new PostCreated();
+    post.handle = Handle.gen();
+    post.parents = new HashSet<>();
+    post.previous = new HashSet<>();
+    post.tags = new HashSet<>();
+    post.text = taCreatePostText.getText();
+    post.user = userHandle;
+    
+    try {
+      Event event = restClient.postEvent(userHandle, password, post);
+      //TODO Store locally
+      if (event == null) {
+        throw new IOException("Event was null");
+      }
+    } catch (IOException ex) {
+      Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+      JOptionPane.showMessageDialog(null, "Please log in first.");
+      return;
+    }
+    
+    // Reset for new post
+    taCreatePostText.setText("");
+  }
+  
   // Variables declaration - do not modify//GEN-BEGIN:variables
+  private javax.swing.JButton btnCreatePost;
   private javax.swing.JButton btnLogInOut;
   private javax.swing.JButton jButton1;
   private javax.swing.JPanel jPanel1;
   private javax.swing.JPanel jPanel2;
+  private javax.swing.JPanel jPanel3;
+  private javax.swing.JPanel jPanel4;
+  private javax.swing.JScrollPane jScrollPane1;
   private javax.swing.JSplitPane jSplitPane1;
+  private javax.swing.JTabbedPane jTabbedPane1;
   private javax.swing.JLabel lUsername;
+  private javax.swing.JTextArea taCreatePostText;
   // End of variables declaration//GEN-END:variables
 }

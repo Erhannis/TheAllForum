@@ -64,6 +64,32 @@ public class RestClient {
     }
   }
 
+  public Event postEvent(Handle userhandle, String password, Event event) throws IOException {
+    Request request = new Request.Builder()
+            .url(api.newBuilder().addPathSegment("event").build())
+            .post(new FormBody.Builder()
+                    .add("userhandle", ctx.om.writeValueAsString(userhandle))
+                    .add("password", password)
+                    .add("event", ctx.om.writeValueAsString(event))
+                    .build())
+            .build();
+
+    try (Response response = client.newCall(request).execute()) {
+      if (response.code() == 401) {
+        return null;
+      }
+      if (!response.isSuccessful()) {
+        throw new IOException("Unexpected code " + response);
+      }
+      if (response.body() == null) {
+        throw new IOException("Null response");
+      }
+
+      String str = response.body().string();
+      return ctx.om.readValue(str, Event.class);
+    }
+  }
+
   public Handle login(String username, String password) throws IOException {
     Request request = new Request.Builder()
             .url(api.newBuilder().addPathSegment("login").build())

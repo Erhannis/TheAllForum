@@ -107,7 +107,9 @@ public class Signature {
       List<Field> fields = Arrays.asList(curClazz.getDeclaredFields()).stream().sorted((a, b) -> a.getName().compareTo(b.getName())).collect(Collectors.toList());
       for (Field field : fields) {
         if (isUserSignature) {
-          if ("serverSignature".equals(field.getName())) {
+          if ("server".equals(field.getName())) {
+            continue;
+          } else if ("serverSignature".equals(field.getName())) {
             continue;
           } else if ("serverTimestamp".equals(field.getName())) {
             continue;
