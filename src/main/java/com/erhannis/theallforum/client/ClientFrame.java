@@ -69,6 +69,9 @@ public class ClientFrame extends javax.swing.JFrame {
     taCreatePostText = new javax.swing.JTextArea();
     jPanel2 = new javax.swing.JPanel();
     jPanel4 = new javax.swing.JPanel();
+    jMenuBar1 = new javax.swing.JMenuBar();
+    jMenu1 = new javax.swing.JMenu();
+    miCreateAccount = new javax.swing.JMenuItem();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -182,6 +185,20 @@ public class ClientFrame extends javax.swing.JFrame {
 
     jSplitPane1.setRightComponent(jTabbedPane1);
 
+    jMenu1.setText("Main");
+
+    miCreateAccount.setText("Create account...");
+    miCreateAccount.addActionListener(new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        miCreateAccountActionPerformed(evt);
+      }
+    });
+    jMenu1.add(miCreateAccount);
+
+    jMenuBar1.add(jMenu1);
+
+    setJMenuBar(jMenuBar1);
+
     javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
     getContentPane().setLayout(layout);
     layout.setHorizontalGroup(
@@ -232,6 +249,10 @@ public class ClientFrame extends javax.swing.JFrame {
   private void btnCreatePostActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCreatePostActionPerformed
     createPost();
   }//GEN-LAST:event_btnCreatePostActionPerformed
+
+  private void miCreateAccountActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_miCreateAccountActionPerformed
+    createUser();
+  }//GEN-LAST:event_miCreateAccountActionPerformed
 
   private void logInOut() {
     if (userHandle == null) {
@@ -351,10 +372,93 @@ public class ClientFrame extends javax.swing.JFrame {
     taCreatePostText.setText("");
   }
   
+  private void createUser() {
+    // Log in
+    JPanel panel = new JPanel();
+    panel.setLayout(new java.awt.GridLayout(0, 2));
+    
+    JTextField tfUsername = new JTextField();
+    panel.add(new JLabel("Username*"));
+    panel.add(tfUsername);
+    
+    JPasswordField pfPassword = new JPasswordField(20);
+    panel.add(new JLabel("Password*"));
+    panel.add(pfPassword);
+    
+    JTextField tfAvatarUrl = new JTextField();
+    panel.add(new JLabel("Avatar URL"));
+    panel.add(tfAvatarUrl);
+    
+    JTextField tfDescription = new JTextField();
+    panel.add(new JLabel("Description"));
+    panel.add(tfDescription);
+    
+    JTextField tfEmail = new JTextField();
+    panel.add(new JLabel("Email"));
+    panel.add(tfEmail);
+
+    JOptionPane pane = new JOptionPane(panel, JOptionPane.QUESTION_MESSAGE, JOptionPane.OK_CANCEL_OPTION) {
+      @Override
+      public void selectInitialValue() {
+        tfUsername.requestFocusInWindow();
+      }
+    };
+    pane.createDialog(null, "Create user").setVisible(true);
+    String[] options = null;
+    int option;
+    result_block: { // Copied from JOptionPane.showOptionDialog
+      Object selectedValue = pane.getValue();
+      if (selectedValue == null) {
+        option = CLOSED_OPTION;
+        break result_block;
+      }
+      if (options == null) {
+        if (selectedValue instanceof Integer) {
+          option = ((Integer) selectedValue).intValue();
+          break result_block;
+        }
+        option = CLOSED_OPTION;
+        break result_block;
+      }
+      for (int counter = 0, maxCounter = options.length;
+              counter < maxCounter; counter++) {
+        if (options[counter].equals(selectedValue)) {
+          option = counter;
+          break result_block;
+        }
+      }
+      option = CLOSED_OPTION;
+      break result_block;
+    }
+    if (option == 0) // pressing OK button
+    {
+      String newUsername = tfUsername.getText();
+      String newPassword = new String(pfPassword.getPassword());
+      String avatarUrl = tfAvatarUrl.getText();
+      String description = tfDescription.getText();
+      String email = tfEmail.getText();
+      try {
+        UserCreated uc = restClient.createUser(newUsername, newPassword, avatarUrl, description, email);
+        if (uc != null) {
+          username = newUsername;
+          userHandle = uc.handle;
+          password = newPassword;
+        } else {
+          JOptionPane.showMessageDialog(null, "Weird error creating user");
+        }
+      } catch (IOException ex) {
+        Logger.getLogger(ClientFrame.class.getName()).log(Level.SEVERE, null, ex);
+        JOptionPane.showMessageDialog(null, "Error creating user");
+      }
+    }
+  }
+  
   // Variables declaration - do not modify//GEN-BEGIN:variables
   private javax.swing.JButton btnCreatePost;
   private javax.swing.JButton btnLogInOut;
   private javax.swing.JButton jButton1;
+  private javax.swing.JMenu jMenu1;
+  private javax.swing.JMenuBar jMenuBar1;
   private javax.swing.JPanel jPanel1;
   private javax.swing.JPanel jPanel2;
   private javax.swing.JPanel jPanel3;
@@ -363,6 +467,7 @@ public class ClientFrame extends javax.swing.JFrame {
   private javax.swing.JSplitPane jSplitPane1;
   private javax.swing.JTabbedPane jTabbedPane1;
   private javax.swing.JLabel lUsername;
+  private javax.swing.JMenuItem miCreateAccount;
   private javax.swing.JTextArea taCreatePostText;
   // End of variables declaration//GEN-END:variables
 }

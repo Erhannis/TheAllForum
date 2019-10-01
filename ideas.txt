@@ -5,6 +5,7 @@ Fake internet points
 Medals/badges
 Anonymous posts by ip?  hmm...
 Store server/client commit hashes on events?
+Event hash instead of handle?  Might prevent intentional collisions
 
 
 Seems like you should be able to just post events, like if you're another server pushing data (maybe not allowed?), or if you're a user that keeps their own private key.

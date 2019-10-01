@@ -8,6 +8,7 @@ package com.erhannis.theallforum.client;
 import com.erhannis.theallforum.Context;
 import com.erhannis.theallforum.data.Handle;
 import com.erhannis.theallforum.data.events.Event;
+import com.erhannis.theallforum.data.events.user.UserCreated;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -87,6 +88,44 @@ public class RestClient {
 
       String str = response.body().string();
       return ctx.om.readValue(str, Event.class);
+    }
+  }
+
+  /**
+   * 
+   * @param username non-null
+   * @param password non-null
+   * @param avatarUrl
+   * @param description
+   * @param email
+   * @return
+   * @throws IOException 
+   */
+  public UserCreated createUser(String username, String password, String avatarUrl, String description, String email) throws IOException {
+    Request request = new Request.Builder()
+            .url(api.newBuilder().addPathSegment("create_user").build())
+            .post(new FormBody.Builder()
+                    .add("username", username)
+                    .add("password", password)
+                    .add("avatar_url", avatarUrl)
+                    .add("description", description)
+                    .add("email", email)
+                    .build())
+            .build();
+
+    try (Response response = client.newCall(request).execute()) {
+      if (response.code() == 401) {
+        return null;
+      }
+      if (!response.isSuccessful()) {
+        throw new IOException("Unexpected code " + response);
+      }
+      if (response.body() == null) {
+        throw new IOException("Null response");
+      }
+
+      String str = response.body().string();
+      return ctx.om.readValue(str, UserCreated.class);
     }
   }
 

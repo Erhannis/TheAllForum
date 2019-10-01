@@ -204,6 +204,20 @@ public class ServerMain extends BaseMain {
       res.status(401);
       return ctx.om.writeValueAsString("Invalid login");
     });
+    post(prefix + "/create_user", (req, res) -> {
+      String username = req.raw().getParameter("username");
+      String password = req.raw().getParameter("password");
+      if (username == null || password == null) {
+        res.status(400);
+        return "Error; username or password missing";
+      }
+      String avatarUrl = req.raw().getParameter("avatar_url");
+      String description = req.raw().getParameter("description");
+      String email = req.raw().getParameter("email");
+      
+      //TODO Validation
+      return ctx.om.writeValueAsString(createUser(ctx, username, password, avatarUrl, description, email));
+    });
 
     setUpTestEndpoints(ctx);
   }
@@ -269,18 +283,9 @@ public class ServerMain extends BaseMain {
       sigV.update(data);
       return "Sig checks out: " + sigV.verify(signature);
     });
-    get(prefix + "/create_user/:username/:password", (req, res) -> {
-      String username = req.params("username");
-      String password = req.params("password");
-      if (username == null || password == null) {
-        res.status(400);
-        return "Error; username or password missing";
-      }
-      return ctx.om.writeValueAsString(createUserTest(ctx, username, password));
-    });
   }
 
-  private static UserCreated createUserTest(Context ctx, String username, String password) throws NoSuchAlgorithmException, IllegalAccessException, InvalidKeyException, SignatureException, IOException, GeneralSecurityException {
+  private static UserCreated createUser(Context ctx, String username, String password, String avatarUrl, String description, String email) throws NoSuchAlgorithmException, IllegalAccessException, InvalidKeyException, SignatureException, IOException, GeneralSecurityException {
     //TODO Allow users to provide their own key
     KeyPairGenerator kpg = KeyPairGenerator.getInstance(Constants.KEY_ALGORITHM);
     kpg.initialize(Constants.KEY_BITS);
@@ -291,9 +296,9 @@ public class ServerMain extends BaseMain {
     //TODO Check username availability
     System.err.println("Make sure to check username available before creating");
     uc.username = username;
-    uc.avatarUrl = null;
-    uc.description = "You're a kitty!";
-    uc.email = "email@internet.com";
+    uc.avatarUrl = avatarUrl;
+    uc.description = description;
+    uc.email = email;
     uc.parents = new HashSet<Handle>();
     uc.privateKeyEncrypted = encryptKey(keyPair.getPrivate(), password);
     uc.publicKey = keyPair.getPublic();
